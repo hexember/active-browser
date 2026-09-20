@@ -20,7 +20,7 @@ You implement ActiveBrowser: a Swift 6 / AppKit menu-bar agent, built with Swift
 3. Do not add a test target; testing is manual per `Project.md` Phase 4.
 
 ## Reporting
-Fill only the **Implementation Notes (implementer)** section of the task file: what was built, decisions made, any deviation from the spec and why, and the exact `swift build` / `make bundle` outcome. Tick the Spec checkboxes you completed. Do not edit Spec, Review, or Manual Test Steps.
+Fill only the **Implementation Notes (implementer)** section of the task file: what was built, decisions made, any deviation from the spec and why, and the exact `swift build` / `make bundle` outcome. Tick the Spec checkboxes you completed. Do not edit Spec, Review, or Test Steps.
 
 ## Self-evaluation hook
 If you hit any of the following, stop and return a message that begins with `[RE-PLAN REQUEST]`, describing the obstacle and what you tried:

@@ -2,24 +2,27 @@
 
 The main Claude session coordinates the cycle below, routing work between the subagents defined in `.claude/agents/`. Subagents never call each other directly; every hand-off goes through the main session.
 
-## Execution Loop
+## Execution Loop (batch mode, stacked PRs)
 
-0. Create `tasks/NN-<slug>.md` from `tasks/TEMPLATE.md` (rules in `CLAUDE.md`), then **git-agent** `start` → creates the task's branch from up-to-date `main` and fills *Branch*. All later work happens on that branch. Every agent below receives the task file path and reads it before acting.
-1. Hand the task file to **planner** → fills *Spec* and *Manual Test Steps*. Status → `planned`.
-2. Send the task file to **implementer** → fills *Implementation Notes*. Status → `in-progress`.
-   - *Re-plan trigger*: if implementer returns a `[RE-PLAN REQUEST]`, set Status → `blocked` with the reason and return to step 1.
-3. Send the task file to **code-reviewer** → fills *Review*. Status → `in-review`.
+0. Create `tasks/NN-<slug>.md` from `tasks/TEMPLATE.md` (rules in `CLAUDE.md`). **git-agent** `start` → creates the task's branch — from `main` if every earlier task is `done`, otherwise from the newest unmerged task's branch (stacked) — and fills *Branch*. Every agent below receives the task file path and reads it before acting.
+1. **planner** → fills *Goal*, *Spec*, *Test Steps* (each step tagged `ai` or `user`). Status → `planned`.
+2. **implementer** → fills *Implementation Notes*. Status → `in-progress`.
+   - `[RE-PLAN REQUEST]` → Status `blocked` with reason, back to step 1.
+3. **code-reviewer** → fills *Review*. Status → `in-review`.
    - `CHANGES_REQUESTED` → back to **implementer** with the review notes.
-4. On `APPROVED`, **git-agent** `commit` → commits the code + task file, pushes, opens a **draft** PR, fills *PR*. Status → `awaiting-manual-test`. Hand the user the task's *Manual Test Steps* (and, if this closes a phase, the phase's **Verify** block from `Project.md`). Wait for the result and record it in the task file.
-5. On pass, **git-agent** `finish` → commits the recorded result (`docs:`), marks the PR ready for review. Status → `done`. The user merges the PR; `main` never changes any other way.
-   - On fail: Status → `in-progress`, back to **implementer** with the failing step numbers.
+4. On `APPROVED`, the main session runs every `ai` Test Step on this machine and fills *Actual* / *Result* for them. Any `ai` failure → back to **implementer**.
+5. **git-agent** `commit` → commits code + task file, pushes, opens the PR (base = parent branch) with the task's *Testing notes* in the body, fills *PR*. Status → `pr-open`. Main session appends the task's `user` steps to `tasks/TEST-PLAN.md`.
+6. **Continue to the next task without waiting.** The user reviews, runs the `user` steps, and merges at the PR. When a parent PR is merged, GitHub retargets the child to `main`; when a parent PR changes after review, **git-agent** `restack` rebases every child branch.
+7. A review comment or failed `user` step on an open PR is handled as a new `fix/` task stacked on top of the current tip, or — if the PR is still the tip — as a follow-up commit on that branch.
 
-Testing is manual (no XCTest target); see `.claude/rules/guardrails.md` §3.
+Testing: `ai` steps run by the main session before the PR opens; `user` steps by the human at the PR. No XCTest target; see `.claude/rules/guardrails.md` §3.
 
 ```
 ┌───────────────────────────────┐
-│      Main Session             │
+│      Main Session             │   for each task, in order:
 └──────────────┬────────────────┘
+               ▼
+       git-agent: start  (branch stacked on previous task)
                ▼
 ┌───────────────────────────┐
 │         planner           │◄────────┐
@@ -33,12 +36,11 @@ Testing is manual (no XCTest target); see `.claude/rules/guardrails.md` §3.
 │       code-reviewer       │──(CHANGES_REQUESTED)──► implementer
 └────────────┬──────────────┘
              ▼ (APPROVED)
-┌───────────────────────────┐
-│    git-agent: commit+PR   │
-└────────────┬──────────────┘
-             ▼ (user runs Manual Test Steps)
-      pass → git-agent: finish → user merges PR
-      fail → implementer
+       main session runs `ai` test steps ──(fail)──► implementer
+             ▼ (pass)
+       git-agent: commit + PR  ──►  next task
+                                        ⋮
+       user: review + `user` steps + merge, bottom of stack first
 ```
 
 ## Source of truth
