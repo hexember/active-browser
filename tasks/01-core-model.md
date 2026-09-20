@@ -1,6 +1,6 @@
 # Task 01 — Core model: BrowserStack, BrowserRegistry, Settings, Package.swift
 
-Status: planned            <planned | in-progress | in-review | pr-open | done | blocked: reason>
+Status: pr-open
 Phase: 1
 Branch: feature/core-model
 Base: main
