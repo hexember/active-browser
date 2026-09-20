@@ -12,7 +12,7 @@ No `user` steps. Phase 1 is build-and-inspection only; all 8 test steps were `ai
 
 ---
 
-## PR #<02> — Task 02: Events & routing (`feature/events-routing`, base `feature/core-model`)
+## PR #4 — Task 02: Events & routing (`feature/events-routing`, base `feature/core-model`)
 
 No `user` steps. Phase 2 is still build-and-inspection only — there is no `.app` bundle until task 03, so nothing is clickable. All 12 test steps were `ai` and ran green before the PR opened.
 

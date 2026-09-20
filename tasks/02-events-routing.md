@@ -4,7 +4,7 @@ Status: planned
 Phase: 2
 Branch: feature/events-routing
 Base: feature/core-model
-PR: <url, filled by git-agent>
+PR: https://github.com/tajpuriya27/active-browser/pull/4
 Created: 2026-09-20
 
 ## Goal
