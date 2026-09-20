@@ -36,7 +36,7 @@ First PR with a runnable `.app`. All 15 `ai` steps ran green before the PR opene
 
 ---
 
-## PR #<04> — Task 04: make install (`feature/make-install`, base `feature/bundle-makefile`)
+## PR #6 — Task 04: make install (`feature/make-install`, base `feature/bundle-makefile`)
 
 14 of 15 `ai` steps pass. **Step 11 fails — a known limitation this PR ships with**: after `make install`, macOS re-registers the rebuilt `build/ActiveBrowser.app` about 1–3 s later, so Launch Services holds two records for `com.local.activebrowser` and the *Default web browser* dropdown lists **ActiveBrowser twice**. The handler role is bound by explicit URL (`Bundle.main.bundleURL` of the running `/Applications` copy), so this cannot silently point your default browser at the disposable `build/` copy — the harm is the duplicated row. Full analysis and the verified remedy are in `tasks/04-make-install.md` under Failures.
 
