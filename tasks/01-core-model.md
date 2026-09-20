@@ -4,7 +4,7 @@ Status: planned            <planned | in-progress | in-review | pr-open | done |
 Phase: 1
 Branch: feature/core-model
 Base: main
-PR: <url, filled by git-agent>
+PR: https://github.com/tajpuriya27/active-browser/pull/3
 Created: 2026-09-20
 
 ## Goal
