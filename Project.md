@@ -66,7 +66,7 @@ The app runs as an agent process (`LSUIElement = true`): no Dock icon, no main w
 - **Never route to self.** Registry and settings both exclude the app's own bundle id.
 - **Never drop a URL.** `resolveTarget` always ends at `settings.defaultBrowser`; if even that is missing, open with the first registry entry.
 - **No polling.** State changes only from system notifications and menu actions.
-- **Login item.** `SMAppService.mainApp.register()` on first launch so the app is alive to observe focus before the first link is clicked.
+- **Login item.** `SMAppService.mainApp.register()` on first launch so the app is alive to observe focus before the first link is clicked — but only when `Bundle.main.bundleURL` is under `/Applications/`. A copy running from `build/` must never register, or `make clean` leaves a login item pointing at a deleted app.
 
 ## 2. Technical Stack
 
@@ -82,10 +82,18 @@ The app runs as an agent process (`LSUIElement = true`): no Dock icon, no main w
 - `BrowserRegistry` (Launch Services query, self-exclusion, display names).
 - `Settings` (UserDefaults keys `includedBrowsers`, `defaultBrowser`).
 
+**Verify (Phase 1)** — no bundle exists yet, so this phase is verified by build and inspection only:
+1. `swift build -c release` — expected: succeeds with zero warnings.
+2. Read `Sources/ActiveBrowser/Core/BrowserStack.swift` and confirm `resolveTarget` returns, in order: first running item → head → fallback. Behaviour is exercised for real in Phase 4.
+
 ### Phase 2 — Events & Routing (`App/`)
 - `FocusObserver`: subscribe to `NSWorkspace.shared.notificationCenter`, filter on `includedBrowsers`, touch stack.
 - `application(_:open:)`: resolve target, open URLs. Fallback chain as above.
 - On launch: `registry.refresh()`, seed settings if empty, `stack.prune(keeping: includedBrowsers)`.
+
+**Verify (Phase 2)** — still no bundle; build-only:
+1. `swift build -c release` — expected: succeeds with zero warnings.
+2. Confirm `AppDelegate` registers exactly one `didActivateApplication` observer and that `application(_:open:)` never returns without calling `NSWorkspace.shared.open`. End-to-end routing is tested in Phase 4.
 
 ### Phase 3 — App Bundle & Makefile (before anything Launch Services related)
 - `Support/Info.plist`: `CFBundleIdentifier`, `LSUIElement = YES`, `CFBundleURLTypes` for `http`/`https`.
@@ -98,10 +106,27 @@ The app runs as an agent process (`LSUIElement = true`): no Dock icon, no main w
 - Why SPM alone is not enough: `swift build` emits a bare Mach-O; macOS only reads `Contents/Info.plist` from a `.app`, so `LSUIElement`, `CFBundleURLTypes`, the bundle id, and the default-browser list all depend on the `make bundle` step.
 - Duplicate-registration gotcha: `make run` (opens `build/…app`) and `make install` (opens `/Applications/…app`) both register the same bundle id with Launch Services, and `setDefaultApplication` may bind to either copy. Test default-browser behaviour only from the installed copy; `make install` should `lsregister -u build/ActiveBrowser.app` first, and `make clean` should do the same before deleting it.
 
+**Verify (Phase 3)** — first time the app runs as an app:
+1. `make bundle` — expected: `build/ActiveBrowser.app` exists; `codesign -dv build/ActiveBrowser.app` prints `Signature=adhoc`; `plutil -lint build/ActiveBrowser.app/Contents/Info.plist` prints `OK`.
+2. `make install` — expected: `/Applications/ActiveBrowser.app` exists, a menu bar item appears, **no** Dock icon appears.
+3. `lsregister -dump | grep -A3 'com.local.activebrowser'` — expected: entries listing `http` and `https` under the bundle's claimed schemes.
+4. System Settings → Desktop & Dock → *Default web browser* dropdown — expected: **ActiveBrowser** is listed (do not select it yet).
+5. Quit from the menu bar; `make clean`; `lsregister -dump | grep -c 'build/ActiveBrowser.app'` — expected: `0` (build copy unregistered).
+
 ### Phase 4 — Launch Services Integration
 - "Set as Default Browser" → `NSWorkspace.shared.setDefaultApplication(at: Bundle.main.bundleURL, toOpenURLsWithScheme: "http")` (macOS shows its own confirmation).
 - "Launch at Login" → `SMAppService.mainApp.register()` / `.unregister()`; reflect `.status` in the menu.
-- Manual test on machine: set default, click links from Terminal/Slack/Mail, switch browsers, confirm routing.
+**Verify (Phase 4)** — this phase changes your system default browser; the reset step at the end restores it. Use the installed copy only.
+1. Menu bar → *Set as Default Browser* — expected: macOS asks to confirm; accept. System Settings → Desktop & Dock now shows ActiveBrowser as default.
+2. Click on Brave, then back to Terminal, run `open https://example.com` — expected: opens in Brave.
+3. Click on Arc, then back to Terminal, `open https://example.com` — expected: opens in Arc.
+4. With Arc still the most recent, quit Arc, then `open https://example.com` — expected: opens in the next most recently focused *running* browser (Brave).
+5. Quit every browser, `open https://example.com` — expected: the fallback browser launches and opens the page.
+6. Click a link inside a non-browser app (Slack, Mail, Notes) — expected: same routing as above.
+7. Menu bar → *Launch at Login* on — expected: System Settings → General → Login Items lists ActiveBrowser. Toggle off — expected: it disappears.
+8. Quit ActiveBrowser, then `open https://example.com` — expected: macOS relaunches ActiveBrowser and the link still opens in the fallback browser (nothing is dropped).
+
+Reset: System Settings → Desktop & Dock → *Default web browser* → pick your real browser. Turn *Launch at Login* off before `make clean`.
 
 ### Phase 5 — Menu Bar UI (`UI/MenuBarManager.swift`)
 ```
@@ -118,20 +143,64 @@ The app runs as an agent process (`LSUIElement = true`): no Dock icon, no main w
   Quit
 ```
 - Toggling a browser off removes it from `includedBrowsers` and prunes the stack. If it was the fallback, fallback moves to the first remaining included browser.
+- The last included browser cannot be unticked: its menu item is disabled while it is the only one. `includedBrowsers` is never empty after first launch.
 - Registry re-scans when the menu opens (`NSMenuDelegate.menuWillOpen`) so newly installed browsers appear.
 
-### Phase 6 — Distribution
-- `make sign` (Developer ID) and `make notarize` (`notarytool`) targets.
-- GitHub Release zip; optional Homebrew Cask.
+**Verify (Phase 5)** — ActiveBrowser set as default (Phase 4 step 1):
+1. Focus Brave, open the menu — expected: *Routing to: Brave* and *Recent* lists Brave first. Focus Arc, reopen — expected: *Routing to: Arc*.
+2. *Browsers* submenu: untick Arc. Focus Arc, then `open https://example.com` from Terminal — expected: opens in Brave (Arc excluded), and *Recent* no longer shows Arc.
+3. Re-tick Arc — expected: it participates in routing again on next focus.
+4. *Fallback Browser*: pick Safari; quit all browsers; `open https://example.com` — expected: Safari launches.
+5. Untick the browser currently set as fallback — expected: fallback radio moves to the first remaining ticked browser.
+6. Untick every browser except one — expected: routing always goes to that one. (Unticking the last one must be refused or must keep it as fallback; verify the menu does not allow an empty set.)
+7. Quit ActiveBrowser, relaunch it — expected: the tick states and fallback survive (UserDefaults).
+8. *Quit* — expected: menu bar item disappears, process gone (`pgrep -x ActiveBrowser` prints nothing).
 
-Testing is manual on the developer's machine; no XCTest target.
+Reset: same as Phase 4.
+
+### Phase 6 — Distribution (final deliverable: `curl | sh` install)
+Goal: a user with no toolchain runs one command and has ActiveBrowser in `/Applications`, launched and registered with Launch Services.
+
+- `install.sh` at the repo root:
+  1. `set -euo pipefail`; refuse to run on anything but macOS 13+ / arm64 or x86_64 as built.
+  2. Resolve the latest release tag via `https://api.github.com/repos/tajpuriya27/active-browser/releases/latest`.
+  3. `curl -fsSL` the `ActiveBrowser.app.zip` asset to a temp dir; verify the `SHA256SUMS` asset published alongside it.
+  4. `pkill -x ActiveBrowser || true`; `rm -rf /Applications/ActiveBrowser.app`; `ditto -x -k` the zip into `/Applications`.
+  5. `lsregister -f /Applications/ActiveBrowser.app`, then `open -a ActiveBrowser` so Launch Services indexes the URL schemes and the menu bar item appears.
+  6. Print next step: open the menu bar item → "Set as Default Browser".
+  Usage: `curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh`
+- `make release`: `make bundle`, then `ditto -c -k --keepParent build/ActiveBrowser.app build/ActiveBrowser.app.zip` and `shasum -a 256` → `build/SHA256SUMS`.
+- GitHub Actions `release.yml` on tag `v*`: `macos-latest` runner, `make release`, attach zip + `SHA256SUMS` to the Release with `gh release create`.
+- Signing: ad-hoc for v1. `curl` does not set the quarantine attribute, so an ad-hoc-signed bundle opens without Gatekeeper prompts via `install.sh`. Browser downloads and Homebrew *do* quarantine; if those paths are added later, add `make sign` (Developer ID) and `make notarize` (`notarytool`) targets first.
+- Homebrew Cask: out of scope for v1.
+
+**Verify (Phase 6)** — proves a stranger's machine can install it. Steps 4–6 need the repo to be public.
+1. `make release` — expected: `build/ActiveBrowser.app.zip` and `build/SHA256SUMS` exist; `shasum -a 256 -c build/SHA256SUMS` (run from `build/`) prints `OK`.
+2. `git tag v0.1.0 && git push origin v0.1.0` — expected: the `release` workflow runs green on GitHub Actions and the Release page for `v0.1.0` shows both assets.
+3. Simulate a fresh machine: quit ActiveBrowser, `rm -rf /Applications/ActiveBrowser.app`, `lsregister -kill -r -domain local -domain user`.
+4. Run the one-liner: `curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh` — expected: script prints each step, finishes with the "Set as Default Browser" hint, menu bar item appears.
+5. `xattr -l /Applications/ActiveBrowser.app` — expected: **no** `com.apple.quarantine` line (this is why curl works without notarization).
+6. Run the one-liner again with the app running — expected: it replaces the app in place without error (idempotent upgrade path).
+7. Repeat Phase 4 steps 1–3 on the curl-installed copy — expected: routing works identically.
+
+Reset: same as Phase 4.
+
+Testing is manual on the developer's machine; no XCTest target. Every phase above ends with a **Verify** block; the main session hands that block to the user as a checklist when the phase's tasks reach `awaiting-manual-test` (see `CLAUDE.md`).
 
 ## 4. Directory Structure
 
 ```
-ActiveBrowser/
+active-browser/
+├── CLAUDE.md
+├── Project.md
 ├── Package.swift
 ├── Makefile
+├── install.sh                       # Phase 6
+├── .github/workflows/release.yml    # Phase 6
+├── .claude/{agents,rules}/          # subagents + always-on rules
+├── docs/skills.md
+├── tasks/                           # one file per task, from TEMPLATE.md (see CLAUDE.md)
+│   └── TEMPLATE.md
 ├── Support/
 │   └── Info.plist
 └── Sources/
@@ -301,7 +370,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menuBar = MenuBarManager(registry: registry, settings: settings, stack: stack)
 
-        if SMAppService.mainApp.status == .notRegistered {
+        // Auto-register only for the installed copy; dev builds in build/ would leave a dangling login item.
+        if Bundle.main.bundleURL.path.hasPrefix("/Applications/"),
+           SMAppService.mainApp.status == .notRegistered {
             try? SMAppService.mainApp.register()
         }
     }
@@ -368,14 +439,24 @@ bundle: build
 	cp Support/Info.plist $(BUNDLE)/Contents/Info.plist
 	codesign --force --sign - $(BUNDLE)
 
+LSREG   = /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+
 install: bundle
+	-pkill -x $(APP)
+	-$(LSREG) -u $(BUNDLE)
 	rm -rf /Applications/$(APP).app
 	cp -R $(BUNDLE) /Applications/
-	/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/$(APP).app
+	$(LSREG) -f /Applications/$(APP).app
+	open /Applications/$(APP).app
 
 run: bundle
 	open $(BUNDLE)
 
+release: bundle
+	ditto -c -k --keepParent $(BUNDLE) build/$(APP).app.zip
+	cd build && shasum -a 256 $(APP).app.zip > SHA256SUMS
+
 clean:
+	-$(LSREG) -u $(BUNDLE)
 	rm -rf .build build
 ```
