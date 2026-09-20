@@ -77,6 +77,22 @@ The app runs as an agent process (`LSUIElement = true`): no Dock icon, no main w
 
 ## 3. Implementation Plan
 
+One PR per task; a task never spans phases. Suggested split (the planner may split further, never merge):
+
+| Task | Phase | Scope | First runnable check |
+|---|---|---|---|
+| 01 | 1 | `BrowserStack`, `BrowserRegistry`, `Settings`, `Package.swift` | `swift build` |
+| 02 | 2 | `AppDelegate` observer + `application(_:open:)` | `swift build` |
+| 03 | 3 | `Support/Info.plist`, `make build` / `bundle` / `run` / `clean` | bundle assembles, menu bar item appears |
+| 04 | 3 | `make install` incl. `lsregister -u` / `-f` and `pkill` | appears in default-browser list |
+| 05 | 4 | Set as Default Browser + routing | links route (needs one `user` click) |
+| 06 | 4 | Launch at Login (`SMAppService`, `/Applications` gate) | Login Items shows the app |
+| 07 | 5 | Status item: *Routing to* / *Recent*, `menuWillOpen` rescan | menu reflects focus changes |
+| 08 | 5 | *Browsers* include/exclude + last-item guard, *Fallback* radio | exclusion changes routing |
+| 09 | 6 | `make release`, `install.sh` | one-liner installs from a local zip |
+| 10 | 6 | `.github/workflows/release.yml` | tag builds and publishes assets |
+
+
 ### Phase 1 — Core (`Core/`)
 - `BrowserStack` (`@MainActor`, array-backed LRU).
 - `BrowserRegistry` (Launch Services query, self-exclusion, display names).
@@ -185,7 +201,7 @@ Goal: a user with no toolchain runs one command and has ActiveBrowser in `/Appli
 
 Reset: same as Phase 4.
 
-Testing is manual on the developer's machine; no XCTest target. Every phase above ends with a **Verify** block; the main session hands that block to the user as a checklist when the phase's tasks reach `awaiting-manual-test` (see `CLAUDE.md`).
+No XCTest target. Every phase above ends with a **Verify** block; the planner turns it into per-task Test Steps tagged `ai` (run by the main session before the PR opens) or `user` (run by the human at the PR, and collected in `tasks/TEST-PLAN.md`). See `CLAUDE.md`.
 
 ## 4. Directory Structure
 

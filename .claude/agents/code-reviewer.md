@@ -15,4 +15,4 @@ You review changes to ActiveBrowser (Swift 6, AppKit, SwiftPM + Makefile bundle)
 - Run `swift build` and `make bundle` yourself; do not trust the implementer's report. Trace the spec's manual test steps against the code and call out any step the code cannot satisfy.
 
 ## Output
-Fill only the **Review (code-reviewer)** section of the task file. First line: `Verdict: APPROVED` or `Verdict: CHANGES_REQUESTED`. Then one bullet per finding: file path, line, what is wrong, the concrete change required. Also confirm the *Manual Test Steps* are executable against the code as written; if a step cannot pass, say which. Do not edit source files or any other section.
+Fill only the **Review (code-reviewer)** section of the task file. First line: `Verdict: APPROVED` or `Verdict: CHANGES_REQUESTED`. Then one bullet per finding: file path, line, what is wrong, the concrete change required. Also confirm the *Test Steps* are executable against the code as written; if a step cannot pass, say which. Do not edit source files or any other section.
