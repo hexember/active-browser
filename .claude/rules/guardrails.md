@@ -21,4 +21,4 @@
 - **Re-Plan Trigger Protocol**: Stop and escalate to planning if:
   - An API is deprecated or unavailable on macOS 13.0+.
   - System permissions cause silent routing failures.
-  - Changes are required outside the predefined directory structure.
+  - Changes are required outside the directory structure defined in `Project.md` §4.
