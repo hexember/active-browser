@@ -1,6 +1,6 @@
 # Task 02 — Events & routing: AppDelegate focus observer and application(_:open:)
 
-Status: planned
+Status: pr-open
 Phase: 2
 Branch: feature/events-routing
 Base: feature/core-model
