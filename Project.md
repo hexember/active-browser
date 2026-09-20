@@ -1,4 +1,4 @@
-Here is the complete architectural blueprint, milestone plan, and implementation strategy for building this macOS utility (tentatively named ActiveBrowserRouter).
+Here is the complete architectural blueprint, milestone plan, and implementation strategy for building this macOS utility (named ActiveBrowser).
 
 1. System Architecture & Component Design
 
@@ -34,7 +34,7 @@ The app runs as an agent process (LSUIElement = true) with no Dock icon or main 
 └───────────────────────────────┼─────────────────────────────┘
                                 │
                                 ▼
-         Target Browser (Brave / Arc / Safari / Chrome)
+         Target Browser (Brave / Arc / Safari / Chrome/ any other installed)
 
 
 Core Components
@@ -50,7 +50,7 @@ Core Components
 ⚬ Language: Swift 6.
 ⚬ UI Framework: AppKit (macOS native, zero Electron or heavy wrapper dependencies).
 ⚬ Target OS: macOS 13.0 (Ventura) and later.
-⚬ Binary Size & Memory: Target < 5\text{ MB} uncompressed binary; idling at \approx 10\text{--}15\text{ MB} RAM.
+⚬ Binary Size & Memory: Target < 5MB uncompressed binary; idling at approx 10 - 15MB RAM.
 ⚬ Dependencies: None (100% native Cocoa/Foundation APIs).
 
 3. Implementation Plan & Milestones
@@ -239,14 +239,3 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 }
-
-
-6. Next Steps to Get Started
-
-1. Initialize the repository:
-   mkdir ActiveBrowserRouter && cd ActiveBrowserRouter
-   swift package init --type executable --name ActiveBrowserRouter
-   
-2. Drop the code above into the project.
-3. Test locally using:
-   swift build -c release
