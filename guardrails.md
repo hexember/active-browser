@@ -1,21 +1,24 @@
 # Operational & Architectural Guardrails
 
 ## 1. Architectural & Platform Boundaries
-- **Zero Third-Party Dependencies**: All implementations must strictly use native Swift standard libraries and Apple frameworks (`AppKit`, `Foundation`). No SPM or CocoaPods third-party packages.
-- **Loop Prevention & Self-Filtering**: The application bundle identifier (`com.local.activebrowserrouter` or dynamic `Bundle.main.bundleIdentifier`) must never be added to the internal browser registry or targeted during URL dispatch.
-- **Memory & Resource Caps**:
+- **Zero Third-Party Dependencies**: Native Swift + Apple frameworks only (`AppKit`, `Foundation`, `ServiceManagement`). No SPM or CocoaPods third-party packages.
+- **Loop Prevention & Self-Filtering**: `Bundle.main.bundleIdentifier` must never appear in the registry, `includedBrowsers`, `defaultBrowser`, or be targeted during URL dispatch.
+- **Never Drop a URL**: `application(_:open:)` must always resolve to some browser — stack → `settings.defaultBrowser` → first registry entry.
+- **Resource Caps**:
   - Idle footprint must not exceed 25 MB RAM.
-  - Must run purely as a background agent (`LSUIElement = true`); no standard dock item or empty window frames may appear.
-  - Polling mechanisms are forbidden. State must update strictly through event-driven system notifications (`NSWorkspace.didActivateApplicationNotification`).
+  - Background agent only (`LSUIElement = true`); no Dock item, no windows.
+  - Polling is forbidden. State updates only through `NSWorkspace` notifications and user menu actions.
+- **Bundle Required**: The app must be run from the `.app` bundle assembled by `make bundle`. Launch Services registration, `LSUIElement`, and self-filtering do not work from a bare SwiftPM executable.
 
-## 2. Threading & Concurrency Rules
-- **Non-Blocking UI/Notification Handlers**: The main thread must never perform synchronous file I/O or unbounded bundle scanning.
-- **State Synchronization**: `BrowserStack` mutations and reads must use atomic synchronization (serial dispatch queue, concurrent queue with barrier write, or Swift actors). Data races under Thread Sanitizer (`swift test --sanitize=thread`) will fail review automatically.
+## 2. Concurrency Rules
+- All app state (`BrowserStack`, `BrowserRegistry`, `Settings`, `MenuBarManager`) is `@MainActor`. No GCD queues, no locks, no actors beyond `MainActor`.
+- The main thread must never perform unbounded file I/O. Registry refresh reads only `Info.plist` of Launch Services results.
 
 ## 3. Workflow & Code Integrity Rules
-- **No Orphan Implementations**: The Code Implementer may not write code without an active specification approved by the Planning Agent.
-- **Green Suite Requirement**: No commit or PR creation is allowed by the Git Agent if `swift build` or `swift test` produces errors or unhandled warnings.
-- **Re-Plan Trigger Protocol**: If the Implementer encounters any of the following, it must stop and trigger an escalation back to the Planning Agent:
-  - An API is deprecated or unavailable in target macOS 13.0+.
-  - Expected system permissions (e.g., Apple Events or Automation) cause silent routing failures.
+- **No Orphan Implementations**: Code is written only against an approved specification in `Project.md`.
+- **Green Build Requirement**: No commit or PR if `swift build` produces errors or warnings.
+- **Testing**: Manual, on the developer's machine, per the checklist in `Project.md` Phase 4. No XCTest target.
+- **Re-Plan Trigger Protocol**: Stop and escalate to planning if:
+  - An API is deprecated or unavailable on macOS 13.0+.
+  - System permissions cause silent routing failures.
   - Changes are required outside the predefined directory structure.

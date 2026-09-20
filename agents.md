@@ -4,76 +4,60 @@
 - **Role**: Coordinates the development cycle, routes outputs between sub-agents, and enforces workflow continuity.
 - **Execution Loop**:
   1. Hand off task specification to **Planning Agent**.
-  2. Forward the verified plan to **Test Writer Agent**.
-  3. Send implementation requirements and test constraints to **Code Implementer Agent**.
-     - *Feedback Trigger*: If the Implementer flags an ambiguity, architecture gap, or missing requirement, execution halts and returns to step 1 (**Planning Agent**).
-  4. Pass written code and tests to **Code Reviewer Agent**.
+  2. Send implementation requirements to **Code Implementer Agent**.
+     - *Feedback Trigger*: If the Implementer flags an ambiguity, architecture gap, or missing requirement, execution halts and returns to step 1.
+  3. Pass written code to **Code Reviewer Agent**.
      - If changes are requested, route back to **Code Implementer Agent**.
-  5. Once approved, send artifacts to **Git Agent** for branch management, commit, push, and PR creation.
+  4. Once approved, send artifacts to **Git Agent** for branch management, commit, push, and PR creation.
 
-
-┌───────────────────────────────┐
-│      Main Orchestrator        │
-└──────────────┬────────────────┘
-▼
+```
+┌───────────────────────────┐
+│     Main Orchestrator     │
+└─────────────┬─────────────┘
+              ▼
 ┌───────────────────────────┐
 │       Plan & Review       │◄────────┐
-└────────────┬──────────────┘         │
-▼                        │
-┌───────────────────────────┐         │ (Re-plan needed)
-│     Test Case Writer      │         │
-└────────────┬──────────────┘         │
-▼                        │
+└─────────────┬─────────────┘         │ (Re-plan needed)
+              ▼                       │
 ┌───────────────────────────┐         │
 │      Code Implementer     │─────────┘
-└────────────┬──────────────┘
-▼
+└─────────────┬─────────────┘
+              ▼
 ┌───────────────────────────┐
 │       Code Reviewer       │──(Revisions)──► [Implementer]
-└────────────┬──────────────┘
-▼ (Approved)
+└─────────────┬─────────────┘
+              ▼ (Approved)
 ┌───────────────────────────┐
 │         Git Agent         │
 └───────────────────────────┘
-
-
+```
 
 ---
 
 ## 2. Sub-Agent Definitions
 
 ### Agent A: Plan & Review Agent
-- **Responsibilities**:
-  - Break project requirements into distinct technical milestones and file-level tasks.
-  - Review proposed changes against macOS architectural best practices.
-  - Revise existing task plans whenever the Code Implementer encounters technical dead-ends or unhandled edge cases.
-- **Output Deliverables**: Structured milestone specifications, updated task checklists, and architectural notes.
+- Break project requirements into distinct technical milestones and file-level tasks.
+- Review proposed changes against macOS architectural best practices.
+- Revise task plans whenever the Code Implementer encounters dead-ends or unhandled edge cases.
+- **Deliverables**: Milestone specifications, task checklists, architectural notes.
 
-### Agent B: Test Case Writer Agent
-- **Responsibilities**:
-  - Author `XCTest` suites before or in tandem with implementation (TDD).
-  - Mock Launch Services queries and `NSWorkspace` event streams.
-  - Cover edge cases: rapid app switching, bundle ID changes, closed running instances, and uninstalled browsers.
-- **Output Deliverables**: Complete `Tests/ActiveBrowserRouterTests/*.swift` files.
+### Agent B: Code Implementer Agent
+- Implement production Swift code adhering precisely to the active plan in `Project.md`.
+- Run `swift build` and `make bundle`; verify the bundle launches.
+- **Self-Evaluation Hook**: On a design flaw, missing API, or platform incompatibility, produce a `[RE-PLAN REQUEST]` and yield to the Orchestrator.
+- **Deliverables**: Swift sources, `Package.swift`, `Support/Info.plist`, `Makefile`.
 
-### Agent C: Code Implementer Agent
-- **Responsibilities**:
-  - Implement production Swift code adhering precisely to the active plan.
-  - Run local builds (`swift build`) and test execution (`swift test`).
-  - **Self-Evaluation Hook**: If a design flaw, missing API capability, or platform incompatibility is discovered, produce a `[RE-PLAN REQUEST]` message detailing the obstacle, and yield back to the Main Orchestrator.
-- **Output Deliverables**: Swift source code, `Package.swift`, `Info.plist`, and `Makefile`.
+### Agent C: Code Reviewer Agent
+- Verify memory management (no retain cycles in notification observers).
+- Verify all state is `@MainActor`; no GCD/locks.
+- Check the zero-external-dependency rule and every guardrail.
+- **Deliverables**: `APPROVED` or `CHANGES_REQUESTED` with specific file/line requests.
 
-### Agent D: Code Reviewer Agent
-- **Responsibilities**:
-  - Verify memory management (avoid retain cycles in notification observers).
-  - Audit thread safety (locking strategies, actor isolations, concurrent read/write queues).
-  - Check compliance with the zero-external-dependency rule.
-  - Ensure guardrails are satisfied.
-- **Output Deliverables**: Code review verdict (`APPROVED` or `CHANGES_REQUESTED`) with specific file and line diff requests.
+### Agent D: Git Agent
+- Manage feature branches (`feature/<milestone-name>`).
+- Stage changes, write conventional commit messages (`feat:`, `fix:`, `refactor:`).
+- Push branches and create Pull Requests with summary checklists.
+- **Deliverables**: Git commands, commit hashes, PR descriptions.
 
-### Agent E: Git Agent
-- **Responsibilities**:
-  - Manage feature branches (`feature/<milestone-name>`).
-  - Stage changes, generate conventional commit messages (`feat:`, `fix:`, `refactor:`).
-  - Push branches and create clean Pull Requests with summary checklists.
-- **Output Deliverables**: Git CLI commands, commit hashes, and PR markdown descriptions.
+Manual testing on the developer's machine replaces the automated test stage.
