@@ -4,7 +4,7 @@ Status: pr-open
 Phase: 3
 Branch: feature/bundle-makefile
 Base: feature/events-routing
-PR: <url, filled by git-agent>
+PR: https://github.com/tajpuriya27/active-browser/pull/5
 Created: 2026-09-20
 
 ## Goal

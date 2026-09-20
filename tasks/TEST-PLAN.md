@@ -20,7 +20,7 @@ Worth knowing when you review this PR: review round 1 caught a blocking runtime 
 
 ---
 
-## PR #<03> — Task 03: App bundle & Makefile (`feature/bundle-makefile`, base `feature/events-routing`)
+## PR #5 — Task 03: App bundle & Makefile (`feature/bundle-makefile`, base `feature/events-routing`)
 
 First PR with a runnable `.app`. All 15 `ai` steps ran green before the PR opened, including the first live proof of self-filtering (`includedBrowsers` seeded with Safari/Brave/cmux/Arc and **not** ActiveBrowser). One `user` step:
 
