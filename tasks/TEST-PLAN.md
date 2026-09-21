@@ -104,7 +104,7 @@ Steps 1 and 3–8 already ran green (routing, LRU promotion, running-first-beats
 
 ---
 
-## PR #<06> — Task 06: Launch at Login (`feature/launch-at-login`, base `feature/set-default-routing`)
+## PR #8 — Task 06: Launch at Login (`feature/launch-at-login`, base `feature/set-default-routing`)
 
 All 7 `ai` steps pass. **This PR fixed a silent no-op**: `Project.md` §5's gate (`status != .notRegistered`) never fires on macOS 26, because `SMAppService` reports `.notFound(3)` when no login item has ever existed — so the app never registered itself. Verified after the fix: status moved `notFound(3)` → `enabled(1)`, and a `build/` copy correctly logs `skipped, bundle is not under /Applications`.
 
