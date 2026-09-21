@@ -4,7 +4,7 @@ Status: pr-open
 Phase: 6
 Branch: feature/release-install-sh
 Base: feature/browsers-fallback-menu
-PR: <url, filled by git-agent>
+PR: https://github.com/tajpuriya27/active-browser/pull/11
 Created: 2026-09-22
 
 ## Goal
