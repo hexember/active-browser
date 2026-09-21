@@ -57,9 +57,9 @@ All 15 `ai` steps pass. A duplicate-Launch-Services-registration defect was foun
 
 | # | Action | Expected |
 |---|---|---|
-| 1 | Open System Settings → Desktop & Dock → scroll to *Default web browser* and open the dropdown. **Look only — do NOT select ActiveBrowser.** Selecting it is task 05. | **ActiveBrowser is listed** as an available choice, and your current default is still **Arc**. Phase 3 Verify step 4. Expect **two** ActiveBrowser rows — that is the known limitation above, not an install failure. Close the dropdown with Esc. |
+| 1 | Open System Settings → Desktop & Dock → scroll to *Default web browser* and open the dropdown. **Look only — do NOT select ActiveBrowser.** Selecting it is task 05. | **ActiveBrowser is listed exactly once**, and your current default is still **Arc**. Phase 3 Verify step 4. Two ActiveBrowser rows would mean this PR's fix regressed. Close the dropdown with Esc. |
 
 **Reset after this block**
-- **Do NOT run the teardown between tasks.** Tasks 05–08 all need the installed copy in `/Applications`. Run the teardown once, at the very end of the whole stack (it is the last block in this file).
-- If you want the duplicate row gone in the meantime: `/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u <repo>/build/ActiveBrowser.app`
+- **Do NOT run the teardown between tasks.** Tasks 05-08 all need the installed copy in `/Applications`. Run the teardown once, at the very end of the whole stack (last block in this file).
 - **Default browser: nothing to restore.** This task never changes it; steps 1 and 14 assert Arc before and after.
+- Note: `make install` now deletes `build/ActiveBrowser.app` as part of the fix. `make bundle` recreates it if you want it back.
