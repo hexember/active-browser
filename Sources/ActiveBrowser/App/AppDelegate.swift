@@ -18,10 +18,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let focusObserver: FocusObserver
     private let dispatcher: URLDispatcher
 
-    /// Optional and `var`, not a `let` built in `init()`: `NSStatusBar.system.statusItem(_:)`
-    /// must not be called before `NSApplication` has finished launching. Stored (rather than
-    /// left as a local in `applicationDidFinishLaunching`) because `NSMenuItem.target` and
-    /// `NSMenu.delegate` are weak — an unretained manager gives a menu whose items do nothing.
     private var menuBar: MenuBarManager?
 
     private var didBootstrap = false
