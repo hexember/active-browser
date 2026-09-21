@@ -1,4 +1,5 @@
 import AppKit
+import ServiceManagement
 
 /// Process entry point and owner of every piece of app state.
 @main
@@ -62,5 +63,67 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         stack.prune(keeping: settings.includedBrowsers)
         focusObserver.start()
+    }
+
+    /// Registers the app as a login item on launch, but only when it runs from `/Applications/`.
+    ///
+    /// The path gate exists because registering a `build/` copy would leave a login item pointing
+    /// at a path `make clean` deletes — a dangling entry the user can only remove by hand in
+    /// System Settings. `/Users/<me>/Applications/...` failing the prefix test is intended.
+    ///
+    /// The switch registers on `.notRegistered` **and** `.notFound`: measured on macOS 26, the
+    /// status is `.notFound(3)` — not `.notRegistered(0)` — when no login item has ever been
+    /// created for this bundle, so `Project.md` §5's `status == .notRegistered` never fires and
+    /// makes this a no-op. That is a deliberate, measured deviation; do not "restore" §5.
+    ///
+    /// `.requiresApproval` and any unknown future case deliberately do nothing: switching the item
+    /// off in System Settings -> General -> Login Items leaves `.requiresApproval`, so we never
+    /// silently re-enable something the user turned off, and an unrecognised case fails closed.
+    ///
+    /// A failure here is not recoverable in code and must not block launch, so every branch just
+    /// names its decision in the single log line below.
+    private func registerLoginItemIfInstalled() {
+        let message: String
+        if !Bundle.main.bundleURL.path.hasPrefix("/Applications/") {
+            message = "skipped, bundle is not under /Applications (\(Bundle.main.bundleURL.path))"
+        } else {
+            let status = SMAppService.mainApp.status
+            let shouldRegister: Bool
+            switch status {
+            case .notRegistered:                // no Background Task Management record yet
+                shouldRegister = true
+            case .notFound:                     // macOS 26's first-launch value; also "nothing exists yet"
+                shouldRegister = true
+            case .enabled:                      // already correct; re-registering re-fires the banner
+                shouldRegister = false
+            case .requiresApproval:             // the user's opt-out from System Settings — respect it
+                shouldRegister = false
+            default:                            // unknown future case: fail closed
+                shouldRegister = false
+            }
+            if !shouldRegister {
+                message = "no action, status=\(label(status))"
+            } else {
+                do {
+                    try SMAppService.mainApp.register()
+                    message = "registered (prior status=\(label(status)))"
+                } catch {
+                    message = "register() failed (prior status=\(label(status))): "
+                        + error.localizedDescription
+                }
+            }
+        }
+        NSLog("ActiveBrowser: login item: %@", message)
+    }
+
+    /// Names a status *and* its raw value, so the log says which case the SDK actually returned.
+    private func label(_ status: SMAppService.Status) -> String {
+        switch status {
+        case .notRegistered: return "notRegistered(\(status.rawValue))"
+        case .enabled: return "enabled(\(status.rawValue))"
+        case .requiresApproval: return "requiresApproval(\(status.rawValue))"
+        case .notFound: return "notFound(\(status.rawValue))"
+        default: return "unknown(\(status.rawValue))"
+        }
     }
 }
