@@ -1,6 +1,6 @@
 # Task 04 — make install: copy to /Applications and register with Launch Services
 
-Status: pr-open  (ships with one known limitation: duplicate Launch Services registration — see Failures)
+Status: pr-open
 Phase: 3
 Branch: feature/make-install
 Base: feature/bundle-makefile
@@ -358,19 +358,37 @@ Order matters:
 
 *Superseded by this re-plan:* the manual `lsregister -u build/ActiveBrowser.app` that the implementer and reviewer each ran by hand after testing is **no longer required** — the recipe's trailing `-u` does it. If anyone still needs to run it manually, Test Step 11 has failed and that is a `[RE-PLAN REQUEST]`, not a workaround to keep applying.
 
-**Result (ai rows):** 14 of 15 pass; **step 11 fails** (duplicate Launch Services registration — see below) — 2026-09-20
+**Result (ai rows):** pass — all 15 `ai` steps pass after the re-plan #2 fix — 2026-09-21
 **Result (user rows):** <recorded at the PR by the user>
-Failures: **step 11 — duplicate Launch Services registration, unresolved. Shipped as a known limitation by an explicit orchestrator decision.**
+Failures: none in the final run. **Step 11 (duplicate Launch Services registration) failed twice before being fixed** — the history matters, so it is recorded here.
 
-What fails: after `make install`, macOS re-registers the rebuilt `build/ActiveBrowser.app` ~1-3 s later, so `com.local.activebrowser` ends up with two records and the *Default web browser* dropdown lists ActiveBrowser twice.
+**The defect.** `install:` depends on `bundle:`, which recreates `build/ActiveBrowser.app`. That bundle and `/Applications/ActiveBrowser.app` declare the *same* bundle id and both claim `http`/`https`, so Launch Services held two records and the *Default web browser* dropdown listed ActiveBrowser twice.
 
-Why it is shipped rather than fixed here: the task was re-planned twice against this defect. Re-plan #1 (move `-u` after `open`) was measured and does not work — the whole recipe runs in 1.76 s and the scanner fires after it returns, so no position inside the recipe can win. Re-plan #2 produced a Spec whose Status line adopted the delete-the-build-copy option while its D2/D2a body still rejected it and still showed the old recipe, i.e. it did not converge. Per the run rules (a task that blocks twice is not allowed to consume the run), the `install:` target ships as implemented and APPROVED: it is functionally correct, byte-for-byte no worse than `Project.md` §5's own recipe, and tasks 05-08 depend on it existing.
+**Why the first two attempts failed.** `Project.md` §5 puts `lsregister -u build/...` second in the recipe; re-plan #1 moved it last, after `open`. Both lose the same race. Measured by the main session: the entire `install:` recipe completes in **1.76 s**, while macOS's background scanner re-registers the freshly built bundle **1-3 s after the recipe has already returned**. Build-path records went 0 at T+0 s, then **1** at T+3 s and stayed 1 through T+40 s. No position inside the recipe can win a race against a scanner that fires after the recipe ends.
 
-Why it is acceptable for now: the handler role is bound by explicit URL, not by bundle-id lookup. `Project.md` §5's menu action is `setDefaultApplication(at: Bundle.main.bundleURL, ...)`, and the running process is the `/Applications` copy (step 8), so task 05 cannot silently bind the default-browser role to the disposable `build/` path. The residual user-visible harm is the duplicated dropdown row.
+**The fix (re-plan #2, shipped).** Delete the build copy, then unregister it, both immediately after `cp -R`:
 
-Verified remedy for the follow-up task (measured by the main session, stable at 0 records for 40 s+): in `install:`, replace the trailing `-$(LSREG) -u $(BUNDLE)` with `rm -rf $(BUNDLE)` followed by `-$(LSREG) -u $(BUNDLE)`. This is deterministic rather than a timing win — once the bundle is off disk the scanner has nothing to rediscover. It needs a planner decision because it changes `make clean`'s subject and means `build/ActiveBrowser.app` no longer survives an install.
+```
+	cp -R $(BUNDLE) /Applications/
+	rm -rf $(BUNDLE)
+	-$(LSREG) -u $(BUNDLE)
+```
 
-**Action for the user:** until that follow-up lands, when running task 05's "Set as Default Browser" step, if the dropdown shows two ActiveBrowser rows, prefer the one under `/Applications`. Running `lsregister -u <repo>/build/ActiveBrowser.app` by hand after any `make install` also clears it.
+This is deterministic rather than a timing win: once the bundle is off disk there is nothing left for the scanner to rediscover, and the `-u` clears any record it created in the meantime.
+
+**Verification, from a genuinely non-vacuous start.** `make run` first, to put the machine in the real duplicate state (`identifiers=2, buildpath=1`), then `make install`:
+
+| | identifiers | build-path records |
+|---|---|---|
+| hazard state before install | 2 | 1 |
+| T+0 s | 1 | 0 |
+| T+5 / +10 / +20 / +45 s | 1 | 0 |
+
+`NSWorkspace.urlsForApplications(toOpen:)` now returns `/Applications/ActiveBrowser.app` exactly once and the `build/` path zero times, so the dropdown shows a single ActiveBrowser row. No regressions: installed bundle still exactly three files, `codesign --verify --strict` exit 0, `Signature=adhoc`, `plutil -lint` OK, running pid rooted at `/Applications/ActiveBrowser.app`, `ApplicationType=UIElement`, `phys_footprint: 7121 KB` (well under the 25 MB guardrail), and both `http`/`https` handlers still `company.thebrowser.browser` (Arc).
+
+**Deliberate deviation from `Project.md` §5**, recorded so nobody "restores" it: §5's `install:` listing and §3 Phase 3's wording ("`make install` should `lsregister -u build/ActiveBrowser.app` **first**") are both wrong on macOS 26 for the reason above. Correcting that prose is a docs-only follow-up, out of this PR's scope.
+
+**Trade-off accepted:** `build/ActiveBrowser.app` no longer survives an install. `make bundle` recreates it in ~0.3 s when needed, and `make clean`'s own `-u $(BUNDLE)` becomes a no-op after an install (absorbed by its leading `-`, so `clean` still works and still removes `.build/`).
 
 ## Next
 <what unblocks or follows this task>

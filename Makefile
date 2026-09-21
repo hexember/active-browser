@@ -27,9 +27,10 @@ install: bundle
 	-pkill -x $(APP)
 	rm -rf /Applications/$(APP).app
 	cp -R $(BUNDLE) /Applications/
+	rm -rf $(BUNDLE)
+	-$(LSREG) -u $(BUNDLE)
 	$(LSREG) -f /Applications/$(APP).app
 	open /Applications/$(APP).app
-	-$(LSREG) -u $(BUNDLE)
 
 # `make run` - bundle, kill any running copy, launch the build/ copy
 run: bundle

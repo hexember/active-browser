@@ -38,13 +38,13 @@ First PR with a runnable `.app`. All 15 `ai` steps ran green before the PR opene
 
 ## PR #6 — Task 04: make install (`feature/make-install`, base `feature/bundle-makefile`)
 
-14 of 15 `ai` steps pass. **Step 11 fails — a known limitation this PR ships with**: after `make install`, macOS re-registers the rebuilt `build/ActiveBrowser.app` about 1–3 s later, so Launch Services holds two records for `com.local.activebrowser` and the *Default web browser* dropdown lists **ActiveBrowser twice**. The handler role is bound by explicit URL (`Bundle.main.bundleURL` of the running `/Applications` copy), so this cannot silently point your default browser at the disposable `build/` copy — the harm is the duplicated row. Full analysis and the verified remedy are in `tasks/04-make-install.md` under Failures.
+All 15 `ai` steps pass. A duplicate-Launch-Services-registration defect was found and **fixed** in this PR (two earlier attempts failed; see `tasks/04-make-install.md` Failures for the measurements). ActiveBrowser now appears exactly **once** in the *Default web browser* list.
 
 | # | Action | Expected |
 |---|---|---|
-| 1 | Open System Settings → Desktop & Dock → scroll to *Default web browser* and open the dropdown. **Look only — do NOT select ActiveBrowser.** Selecting it is task 05. | **ActiveBrowser is listed** as an available choice, and your current default is still **Arc**. Phase 3 Verify step 4. Expect **two** ActiveBrowser rows — that is the known limitation above, not an install failure. Close the dropdown with Esc. |
+| 1 | Open System Settings → Desktop & Dock → scroll to *Default web browser* and open the dropdown. **Look only — do NOT select ActiveBrowser.** Selecting it is task 05. | **ActiveBrowser is listed exactly once**, and your current default is still **Arc**. Phase 3 Verify step 4. Two ActiveBrowser rows would mean this PR's fix regressed. Close the dropdown with Esc. |
 
 **Reset after this block**
-- **Do NOT run the teardown between tasks.** Tasks 05–08 all need the installed copy in `/Applications`. Run the teardown once, at the very end of the whole stack (it is the last block in this file).
-- If you want the duplicate row gone in the meantime: `/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u <repo>/build/ActiveBrowser.app`
+- **Do NOT run the teardown between tasks.** Tasks 05-08 all need the installed copy in `/Applications`. Run the teardown once, at the very end of the whole stack (last block in this file).
 - **Default browser: nothing to restore.** This task never changes it; steps 1 and 14 assert Arc before and after.
+- Note: `make install` now deletes `build/ActiveBrowser.app` as part of the fix. `make bundle` recreates it if you want it back.
