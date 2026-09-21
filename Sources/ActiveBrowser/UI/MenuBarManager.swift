@@ -96,7 +96,9 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
         menu.addItem(infoItem(title: recentLine()))
         menu.addItem(NSMenuItem.separator())
 
-        // TASK 08 INSERTS THE *Browsers* AND *Fallback Browser* SUBMENUS HERE, FOLLOWED BY ANOTHER SEPARATOR.
+        menu.addItem(submenuItem(title: "Browsers", submenu: browsersMenu()))
+        menu.addItem(submenuItem(title: "Fallback Browser", submenu: fallbackMenu()))
+        menu.addItem(NSMenuItem.separator())
 
         menu.addItem(actionItem(title: "Set as Default Browser", action: #selector(setAsDefault)))
 
@@ -120,6 +122,134 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
         menuItem.target = self
         menuItem.isEnabled = true
         return menuItem
+    }
+
+    /// A parent row that only opens a submenu: no action, no target, and deliberately enabled —
+    /// with auto-enabling off a disabled parent cannot be opened at all.
+    private func submenuItem(title: String, submenu: NSMenu) -> NSMenuItem {
+        let menuItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        menuItem.target = nil
+        menuItem.isEnabled = true
+        menuItem.submenu = submenu
+        return menuItem
+    }
+
+    /// The *Browsers* submenu: every installed handler, checked when it participates in routing.
+    ///
+    /// Nothing here repairs settings. An included identifier whose browser is not installed right
+    /// now (external volume, app moved) is simply not drawn and keeps its place in
+    /// `includedBrowsers`, so its checkmark returns when the browser does.
+    private func browsersMenu() -> NSMenu {
+        let submenu = NSMenu()
+        // A freshly created menu auto-enables its items, and that validation pass runs *after* the
+        // assignments below: it would re-enable the very row the last-checked guard disables. The
+        // property is per-menu, so setting it on the root menu does not cover this one.
+        submenu.autoenablesItems = false
+        // No delegate here: `menuWillOpen(_:)` is delivered to the opening menu's own delegate, so
+        // a submenu delegate would run `rebuild()` — and `menu.removeAllItems()` — while AppKit is
+        // displaying this tree. The root's `menuWillOpen` has already rebuilt it.
+
+        let entries = installedUnique()
+        guard !entries.isEmpty else {
+            // An empty submenu renders as a parent that cannot be opened, i.e. as a broken menu.
+            submenu.addItem(infoItem(title: "No browsers found"))
+            return submenu
+        }
+
+        let included = settings.includedBrowsers
+        let visible = includedInstalledIds()
+        // With exactly one browser checked, that row is disabled: the set can never become empty,
+        // which is the first rung of the "never drop a URL" chain.
+        let lockedId = visible.count == 1 ? visible.first : nil
+
+        for entry in entries {
+            let menuItem = actionItem(title: entry.name, action: #selector(toggleBrowser(_:)))
+            menuItem.representedObject = entry.bundleId  // the identifier itself, never an index
+            menuItem.state = included.contains(entry.bundleId) ? .on : .off
+            menuItem.isEnabled = entry.bundleId != lockedId
+            submenu.addItem(menuItem)
+        }
+        return submenu
+    }
+
+    /// The *Fallback Browser* submenu: the included browsers, one of them checked.
+    ///
+    /// A radio group by mutual exclusion, not by glyph: every row is recomputed against the one
+    /// stored identifier, so two checked rows are structurally impossible. AppKit's checkmark is
+    /// the platform convention for a mutually exclusive menu group, so no glyph is written into
+    /// the titles and no custom state image is installed. The selected row stays enabled — a
+    /// greyed-out selected option reads as "unavailable" — and re-picking it is idempotent.
+    ///
+    /// A stored fallback outside the included set (only reachable by an external `defaults write`)
+    /// shows no checkmark rather than being rewritten behind the user's back; picking any row
+    /// fixes it. That is also what makes this safe to build from `menuWillOpen`.
+    private func fallbackMenu() -> NSMenu {
+        let submenu = NSMenu()
+        submenu.autoenablesItems = false
+
+        let ids = orderedIncluded()
+        guard !ids.isEmpty else {
+            submenu.addItem(infoItem(title: "No included browsers"))
+            return submenu
+        }
+
+        let fallback = settings.defaultBrowser
+        for id in ids {
+            let menuItem = actionItem(title: registry.entry(for: id)?.name ?? id,
+                                      action: #selector(chooseFallback(_:)))
+            menuItem.representedObject = id
+            menuItem.state = id == fallback ? .on : .off
+            submenu.addItem(menuItem)
+        }
+        return submenu
+    }
+
+    // MARK: - Derived state
+
+    /// Installed handlers, first occurrence per bundle identifier wins, registry (display-name)
+    /// order preserved.
+    ///
+    /// `BrowserRegistry.refresh()` does not de-duplicate: Launch Services returns one result per
+    /// copy on disk, so two installs of the same browser produce two entries with the same bundle
+    /// identifier. Drawn straight that lists the browser twice and — worse — makes the
+    /// last-checked guard count two for what is one logical browser, which is exactly the path
+    /// that lets `includedBrowsers` reach empty. Both submenus and the guard count use this.
+    private func installedUnique() -> [BrowserRegistry.Entry] {
+        var seen = Set<String>()
+        return registry.installed.filter { seen.insert($0.bundleId).inserted }
+    }
+
+    /// The checkmarks the user can actually see: installed handlers that are also included, in
+    /// menu order. The last-checked guard counts these and not the stored set, because an
+    /// identifier stored for a browser that is not installed right now is not drawn and therefore
+    /// cannot be unchecked.
+    private func includedInstalledIds() -> [String] {
+        let included = settings.includedBrowsers
+        return installedUnique().map(\.bundleId).filter { included.contains($0) }
+    }
+
+    /// Included browsers in menu order: installed ones in registry display-name order first, then
+    /// any included-but-not-installed identifiers in bundle-identifier order.
+    ///
+    /// Deterministic by construction. `Set` iteration order is not: Swift seeds hashing per
+    /// process, so `includedBrowsers.first` and iterating the set directly give a different answer
+    /// on every launch, and a fallback migration built on that would pick a different browser each
+    /// time — a bug no report would ever reproduce. `Set` order must never be used to choose an
+    /// ordering in this file; this function is the only ordering source.
+    private func orderedIncluded() -> [String] {
+        let installed = includedInstalledIds()
+        let rest = settings.includedBrowsers.subtracting(installed).sorted()
+        return installed + rest
+    }
+
+    /// `true` when `id` is this app's own bundle identifier.
+    ///
+    /// Launch Services compares bundle identifiers case-insensitively, so this mirrors
+    /// `URLDispatcher.candidates()` rather than the registry's `!=` filter. A `nil` self
+    /// identifier (bare, unbundled binary) matches nothing.
+    private func isSelfBundleId(_ id: String) -> Bool {
+        guard let me = Bundle.main.bundleIdentifier else { return false }
+        return id.caseInsensitiveCompare(me) == .orderedSame
     }
 
     /// The display name of the browser a URL would be routed to right now.
@@ -155,6 +285,56 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
     }
 
     // MARK: - Actions
+
+    /// Includes or excludes one browser.
+    ///
+    /// The identifier travels on `representedObject`, so the action reads the state itself and not
+    /// an index into `registry.installed` — that array is re-sorted and re-sized by the
+    /// `menuWillOpen` rescan, which would make an index refer to the wrong browser. The title is
+    /// never read either: display names are localised and are not identifiers.
+    @objc private func toggleBrowser(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        // Unreachable — the rows come from the registry, which already drops this app — but
+        // `includedBrowsers` is named in the self-filtering guardrail and this is the only place
+        // in the codebase where user input writes it.
+        guard !isSelfBundleId(id) else { return }
+
+        var included = settings.includedBrowsers
+        if included.contains(id) {
+            // The same invariant the view enforces by disabling the row, restated where the set is
+            // written: a disabled item is still reachable through accessibility and
+            // `NSMenu.performActionForItem(at:)`, and the invariant belongs to the writer.
+            guard includedInstalledIds().count > 1 else { return }
+            included.remove(id)
+            settings.includedBrowsers = included          // persist first: every read below is off the stored truth
+            stack.prune(keeping: settings.includedBrowsers)  // stops being a routing candidate immediately
+            if settings.defaultBrowser == id {
+                // Under the guard above the list cannot be empty here; the `??` exists so the key
+                // is never written `nil`, which would weaken the never-drop-a-URL chain.
+                settings.defaultBrowser = orderedIncluded().first ?? settings.defaultBrowser
+            }
+        } else {
+            // Re-including deliberately touches settings and nothing else: it is not a focus event,
+            // so the stack is left alone and the browser rejoins routing on its next activation.
+            included.insert(id)
+            settings.includedBrowsers = included
+        }
+
+        // Never mutate `sender.state` in place: the menu is recomputed from the persisted truth,
+        // and the tooltip is refreshed because this click can have changed the routing target.
+        rebuild()
+        refresh()
+    }
+
+    /// Picks the browser a URL goes to when the stack resolves to nothing.
+    @objc private func chooseFallback(_ sender: NSMenuItem) {
+        guard let id = sender.representedObject as? String else { return }
+        guard !isSelfBundleId(id) else { return }
+
+        settings.defaultBrowser = id
+        rebuild()
+        refresh()
+    }
 
     /// macOS treats `http` and `https` as one "default web browser" role and presents its own
     /// confirmation dialog, so a single call for `http` is issued; a second call for `https`
