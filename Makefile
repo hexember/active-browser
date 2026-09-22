@@ -1,3 +1,5 @@
+# This file is only used in build-time only; never ships
+
 APP     = ActiveBrowser
 BUILD   = .build/release/$(APP)
 BUNDLE  = build/$(APP).app
@@ -8,9 +10,11 @@ LSREG   = /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchSer
 # Any target added later (install, release) must be listed here too.
 .PHONY: build bundle run clean
 
+# `make build` - swift build -c release → binary at .build/release/ActiveBrowser
 build:
 	swift build -c release
 
+# `make bundle` - build, then assemble + ad-hoc sign build/ActiveBrowser.app
 bundle: build
 	rm -rf $(BUNDLE)
 	mkdir -p $(BUNDLE)/Contents/MacOS
@@ -18,15 +22,12 @@ bundle: build
 	cp Support/Info.plist $(BUNDLE)/Contents/Info.plist
 	codesign --force --sign - $(BUNDLE)
 
-# `open` on a bundle whose bundle id is already running activates the running
-# instance instead of launching the new binary, so kill the old copy first.
+# `make run` - bundle, kill any running copy, launch the build/ copy
 run: bundle
 	-pkill -x $(APP)
 	open $(BUNDLE)
 
-# Unregister before deleting: the build copy claims http/https under the same bundle
-# id as the installed copy, so leaving it registered lets Launch Services bind the
-# default-browser role to a deleted path. Unregistering after `rm` is a no-op.
+# `make clean` - unregister the build copy, delete .build/ and build/
 clean:
 	-$(LSREG) -u $(BUNDLE)
 	rm -rf .build build
