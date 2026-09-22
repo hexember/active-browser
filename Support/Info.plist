@@ -18,6 +18,52 @@
     <string>13.0</string>
     <key>LSUIElement</key>
     <true/>
+    <!-- What puts ActiveBrowser in System Settings -> Desktop and Dock -> Default web
+         browser.
+
+         Launch Services sets a per-bundle "web-browser" flag at registration time, and
+         System Settings lists exactly the bundles that carry it. The flag is granted only
+         when a bundle claims all three of: the http scheme, the https scheme, and an HTML
+         content type. Claiming the two schemes alone is enough for URLs to be routed to
+         us and enough for NSWorkspace.setDefaultApplication (the menu bar item) to
+         succeed -- but not enough to be listed. That is why the app could be made default
+         from its own menu while being absent from the picker.
+
+         LSHandlerRank must be Alternate, not None: None means "never opens this type" and
+         fails the same check it is trying to satisfy. Alternate is the lowest rank that
+         still counts, and keeps us below every real browser for actual .html files.
+
+         ActiveBrowser never renders HTML -- it hands every URL to a real browser -- so
+         this is a registration claim, not a capability claim. Because the claim also makes
+         us a possible handler for .html files on disk, AppDelegate implements
+         application(_:openFiles:) to forward them through the same dispatcher. -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>HTML Document</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.html</string>
+            </array>
+        </dict>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>XHTML Document</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>Alternate</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.xhtml</string>
+            </array>
+        </dict>
+    </array>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>
