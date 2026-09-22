@@ -15,11 +15,21 @@ build:
 	swift build -c release
 
 # `make bundle` - build, then assemble + ad-hoc sign build/ActiveBrowser.app
+#
+# Every payload file must be in place BEFORE `codesign`: the ad-hoc signature seals
+# Contents/Resources into _CodeSignature/CodeResources, so a resource copied in after
+# signing makes `codesign --verify --strict` fail and macOS refuse to launch the bundle.
+# Keep the codesign line last.
 bundle: build
 	rm -rf $(BUNDLE)
 	mkdir -p $(BUNDLE)/Contents/MacOS
+	mkdir -p $(BUNDLE)/Contents/Resources
 	cp $(BUILD) $(BUNDLE)/Contents/MacOS/$(APP)
 	cp Support/Info.plist $(BUNDLE)/Contents/Info.plist
+	cp assets/AppIcon.icns $(BUNDLE)/Contents/Resources/AppIcon.icns
+	cp assets/menubar/MenuBarIconTemplate.png $(BUNDLE)/Contents/Resources/
+	cp assets/menubar/MenuBarIconTemplate@2x.png $(BUNDLE)/Contents/Resources/
+	cp assets/menubar/MenuBarIconTemplate@3x.png $(BUNDLE)/Contents/Resources/
 	codesign --force --sign - $(BUNDLE)
 
 # `make install` 

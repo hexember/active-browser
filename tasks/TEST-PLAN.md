@@ -219,6 +219,46 @@ Steps 12–14 are recorded `not run — needs user step 9 / 10(b) / 11` and will
 - If you made the repo public and want it private again, change it back in Settings.
 - After step 4, `/Applications/ActiveBrowser.app` is the curl-installed copy — that is the intended end state.
 
+## PR #19 — Task 11: default-browser picker listing (`fix/default-browser-listing`, base `main`)
+
+All 11 `ai` steps pass. ActiveBrowser was absent from the System Settings picker because the
+bundle claimed `http`/`https` but no HTML content type, so Launch Services never set its
+`web-browser` flag. Fixed with `CFBundleDocumentTypes` at `LSHandlerRank: Alternate`. The
+earlier "needs a notarized Developer ID" theory was wrong — the bundle is still ad-hoc signed.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | System Settings → Desktop & Dock → *Default web browser* → open the dropdown | **ActiveBrowser is listed.** ✅ *confirmed 2026-09-22* |
+| 2 | Select `ActiveBrowser` there and accept the macOS confirmation | It becomes the default. No Dock icon, no window. |
+| 3 | Focus Brave, then from Terminal `open https://example.com/u1` | Opens in **Brave**. |
+| 4 | Focus Arc, then `open https://example.com/u2` | Opens in **Arc**. |
+| 5 | Double-click any `.html` file in Finder | Still opens in your **normal** browser — `Alternate` rank must not hijack it. |
+
+**Reset after this block**
+- If step 2 was run: System Settings → Desktop & Dock → *Default web browser* → **Arc**.
+
+---
+
+## PR #23 — Task 12: icon + menu bar glyph in the bundle (`feature/bundle-icon-assets`, base `main`)
+
+All 13 `ai` steps pass. PR #20 added the artwork but wired none of it; this PR adds
+`CFBundleIconFile`, copies the resources in `make bundle` (before `codesign`, so the ad-hoc
+signature seals them), and loads the bundled menu bar glyph with the `globe` SF Symbol as
+fallback. Verified on the installed copy: the picker entry and the single Launch Services
+record both survive the change.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | Look at the menu bar | The ActiveBrowser mark, **not a globe**. Tints correctly in light/dark and while the menu is open. *On a non-Retina external display the 1x PNG is largely antialiasing and may read faint — worth a look if you have one.* |
+| 2 | Finder → `/Applications` → ActiveBrowser | The custom app icon, not a generic one. |
+| 3 | System Settings → Desktop & Dock → *Default web browser*, and General → Login Items | ActiveBrowser shows its icon in both lists. |
+| 4 | Confirm no Dock icon and no window appear | `LSUIElement` still holds — an icon does not make it a foreground app. |
+
+**Reset after this block**
+- None. This PR changes no system state; `make clean` removes `build/`.
+
+---
+
 ---
 
 # Final teardown — run this only when you are finished with everything above
