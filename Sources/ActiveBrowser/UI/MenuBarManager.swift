@@ -14,10 +14,13 @@ import ServiceManagement
 /// `SMAppService.mainApp.status` and never from `Settings.launchAtLoginOptOut`. If
 /// `unregister()` throws, the opt-out flag is already persisted but macOS still launches us;
 /// a checkmark driven by the flag would claim "off" while the login item exists. The status is
-/// the truth about macOS; the flag only governs *our* auto-registration at launch.
+/// the truth about macOS; the flag only governs *our* auto-registration at launch. The
+/// default-browser row follows the same rule: it is derived from Launch Services at
+/// `menuWillOpen`, just as the login checkmark is derived from `SMAppService.status`.
 ///
 /// **No polling.** The menu's contents are computed at exactly two event-driven moments:
 /// `menuWillOpen(_:)` (a user action) and `refresh()` (called from the focus notification).
+/// Nothing observes or polls for default-browser changes; the next menu open picks them up.
 @MainActor
 final class MenuBarManager: NSObject, NSMenuDelegate {
     /// Retained for the lifetime of the app: releasing the status item removes it from the
@@ -113,7 +116,15 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
         menu.addItem(submenuItem(title: "Fallback Browser", submenu: fallbackMenu()))
         menu.addItem(NSMenuItem.separator())
 
-        menu.addItem(actionItem(title: "Set as Default Browser", action: #selector(setAsDefault)))
+        if isSystemDefaultBrowser() {
+            // Status, not an action: `infoItem` has no selector, so the row cannot be
+            // triggered through accessibility or `performActionForItem(at:)` either.
+            let defaultItem = infoItem(title: "Default Browser")
+            defaultItem.state = .on
+            menu.addItem(defaultItem)
+        } else {
+            menu.addItem(actionItem(title: "Set as Default Browser", action: #selector(setAsDefault)))
+        }
 
         let launchItem = actionItem(title: "Launch at Login", action: #selector(toggleLaunchAtLogin))
         launchItem.state = launchAtLoginState()
@@ -263,6 +274,22 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
     private func isSelfBundleId(_ id: String) -> Bool {
         guard let me = Bundle.main.bundleIdentifier else { return false }
         return id.caseInsensitiveCompare(me) == .orderedSame
+    }
+
+    /// `true` only when Launch Services resolves **both** `http` and `https` to this app.
+    ///
+    /// Called only from `rebuild()`, never from `refresh()`. It reads at most two `Info.plist`s
+    /// (bounded I/O, allowed by guardrail §2). The self identifier is only compared against,
+    /// never targeted for dispatch. The comparison is by bundle identifier, not app URL:
+    /// Launch Services binds handlers by bundle id, and a URL comparison would report "not
+    /// default" whenever it resolves to a different copy of the same bundle.
+    private func isSystemDefaultBrowser() -> Bool {
+        ["http", "https"].allSatisfy { scheme in
+            guard let probe = URL(string: "\(scheme)://example.com"),
+                  let appURL = NSWorkspace.shared.urlForApplication(toOpen: probe),
+                  let id = Bundle(url: appURL)?.bundleIdentifier else { return false }
+            return isSelfBundleId(id)
+        }
     }
 
     /// The display name of the browser a URL would be routed to right now.
