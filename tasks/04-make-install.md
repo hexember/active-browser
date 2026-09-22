@@ -4,7 +4,7 @@ Status: pr-open
 Phase: 3
 Branch: feature/make-install
 Base: feature/bundle-makefile
-PR: https://github.com/tajpuriya27/active-browser/pull/6
+PR: https://github.com/hexember/active-browser/pull/6
 Created: 2026-09-20
 
 ## Goal

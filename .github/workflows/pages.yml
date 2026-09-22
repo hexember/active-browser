@@ -1,0 +1,61 @@
+# pages -- publish https://activebrowser.app (landing page + install.sh).
+#
+# The repo-root install.sh is the single source of truth. It is copied into the
+# artifact at deploy time; there is no committed site/install.sh, and the build
+# fails if one appears, so the served script can never drift from the root copy.
+#
+# The custom domain (activebrowser.app) is configured in repo Settings -> Pages,
+# not by a site/CNAME file: Actions-deployed Pages ignores CNAME files.
+#
+# Only GitHub's first-party actions are used (same category as actions/checkout
+# in ci.yml); the zero-dependency rule applies to the Swift app, not to CI.
+
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'install.sh'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deployment that is already running.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Assemble site with the root install.sh
+        run: |
+          set -euo pipefail
+          if [ -e site/install.sh ]; then
+            echo "::error::site/install.sh must not exist; the root install.sh is the single source" >&2
+            exit 1
+          fi
+          mkdir _site && cp -R site/. _site/ && cp install.sh _site/install.sh
+          cmp install.sh _site/install.sh
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
