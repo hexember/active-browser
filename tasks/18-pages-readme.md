@@ -1,10 +1,10 @@
 # Task 18 — Publish the README to GitHub Pages with Jekyll
 
-Status: in-review
+Status: pr-open
 Phase: 6
 Branch: chore/pages-readme
 Base: chore/readme-restructure
-PR: <url, filled by git-agent>
+PR: https://github.com/hexember/active-browser/pull/30
 Created: 2026-09-23
 
 ## Goal
