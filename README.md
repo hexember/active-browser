@@ -1,7 +1,7 @@
 # ActiveBrowser
 
-[![ci](https://github.com/hexember/active-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/hexember/active-browser/actions/workflows/ci.yml)
-[![release](https://img.shields.io/github/v/release/hexember/active-browser?sort=semver)](https://github.com/hexember/active-browser/releases/latest)
+[![ci](https://github.com/tajpuriya27/active-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/tajpuriya27/active-browser/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/tajpuriya27/active-browser?sort=semver)](https://github.com/tajpuriya27/active-browser/releases/latest)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![platform: macOS 13+](https://img.shields.io/badge/platform-macOS%2013%2B-lightgrey.svg)](#install)
 
@@ -43,10 +43,8 @@ The two approaches aren't rivals so much as answers to different questions: *whe
 ## Install
 
 ```sh
-curl -fsSL https://activebrowser.app/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh
 ```
-
-If activebrowser.app is unreachable: `curl -fsSL https://raw.githubusercontent.com/hexember/active-browser/main/install.sh | sh`
 
 Then open the menu bar icon and choose **Set as Default Browser**, and accept the macOS confirmation dialog.
 
@@ -62,7 +60,7 @@ The script checks your macOS version and CPU architecture, verifies the download
 Build and install from source:
 
 ```sh
-git clone https://github.com/hexember/active-browser.git
+git clone https://github.com/tajpuriya27/active-browser.git
 cd active-browser
 make install
 ```
