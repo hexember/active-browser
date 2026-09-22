@@ -11,9 +11,6 @@ final class BrowserStack {
     private(set) var items: [String] = []
 
     /// Promotes `bundleId` to the head of the stack.
-    ///
-    /// Idempotent: every existing occurrence is removed before the insert, so the
-    /// stack can never hold the same identifier twice.
     func touch(_ bundleId: String) {
         items.removeAll { $0 == bundleId }
         items.insert(bundleId, at: 0)
