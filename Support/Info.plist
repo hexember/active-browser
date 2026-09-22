@@ -6,6 +6,12 @@
     <string>com.local.activebrowser</string>
     <key>CFBundleName</key>
     <string>ActiveBrowser</string>
+    <!-- Names Contents/Resources/AppIcon.icns, copied in by `make bundle`. Extension
+         omitted deliberately: CFBundleIconFile is a resource *name*, and Launch Services
+         appends .icns itself. LSUIElement keeps us out of the Dock, so this icon is what
+         Finder, the System Settings default-browser picker, and Login Items display. -->
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleExecutable</key>
     <string>ActiveBrowser</string>
     <key>CFBundlePackageType</key>

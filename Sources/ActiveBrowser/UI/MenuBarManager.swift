@@ -44,7 +44,20 @@ final class MenuBarManager: NSObject, NSMenuDelegate {
             // A template image inverts correctly in dark mode and while the menu is highlighted.
             // A fixed-width icon also keeps the rest of the menu bar from shifting on every
             // focus change; the live target name lives in the tooltip and on the first menu line.
-            if let image = NSImage(systemSymbolName: "globe", accessibilityDescription: "ActiveBrowser") {
+            //
+            // Prefer the bundled mark. `NSImage(named:)` resolves MenuBarIconTemplate.png
+            // together with its @2x/@3x siblings in Contents/Resources into one 18x18pt
+            // image, so it stays sharp on every display. It returns nil for any build whose
+            // Resources directory was not assembled by `make bundle` -- a bare SwiftPM
+            // binary, say -- so the system globe stays as the fallback rather than leaving
+            // the status item blank.
+            // No accessibilityDescription here: `refresh()` sets the button's own
+            // accessibility label to the live routing target, which is what VoiceOver
+            // reads on a status item, and setting it on the image would mutate the
+            // process-wide NSImage name cache for no gain.
+            let bundled = NSImage(named: "MenuBarIconTemplate")
+            if let image = bundled
+                ?? NSImage(systemSymbolName: "globe", accessibilityDescription: "ActiveBrowser") {
                 image.isTemplate = true
                 button.image = image
             } else {

@@ -115,7 +115,7 @@ One PR per task; a task never spans phases. Suggested split (the planner may spl
 - `Support/Info.plist`: `CFBundleIdentifier`, `LSUIElement = YES`, `CFBundleURLTypes` for `http`/`https`.
 - `Makefile`:
   - `make build` → `swift build -c release`
-  - `make bundle` → `build/ActiveBrowser.app/Contents/{MacOS/ActiveBrowser, Info.plist}` + ad-hoc `codesign -s -`
+  - `make bundle` → `build/ActiveBrowser.app/Contents/{MacOS/ActiveBrowser, Info.plist, Resources/{AppIcon.icns, MenuBarIconTemplate{,@2x,@3x}.png}}` + ad-hoc `codesign -s -`
   - `make install` → copy to `/Applications`, `lsregister -f` to register URL schemes
   - `make run`, `make clean`
 - Verify: `Bundle.main.bundleIdentifier` is non-nil when launched from the bundle (self-filter depends on it).
@@ -217,6 +217,12 @@ active-browser/
 ├── docs/skills.md
 ├── tasks/                           # one file per task, from TEMPLATE.md (see CLAUDE.md)
 │   └── TEMPLATE.md
+├── assets/                          # icon artwork
+│   ├── AppIcon.icns                 # copied into Contents/Resources by `make bundle`
+│   ├── menubar/MenuBarIconTemplate{,@2x,@3x}.png
+│   ├── icon.svg, menubar-icon.svg   # sources of truth for both marks
+│   ├── icon-1024.png, README.md     # flat preview; regeneration recipe
+│   └── tools/render.swift           # AppKit-only SVG→PNG rasteriser, never compiled
 ├── Support/
 │   └── Info.plist
 └── Sources/
@@ -243,6 +249,7 @@ active-browser/
 <dict>
     <key>CFBundleIdentifier</key>        <string>com.local.activebrowser</string>
     <key>CFBundleName</key>              <string>ActiveBrowser</string>
+    <key>CFBundleIconFile</key>          <string>AppIcon</string>
     <key>CFBundleExecutable</key>        <string>ActiveBrowser</string>
     <key>CFBundlePackageType</key>       <string>APPL</string>
     <key>CFBundleShortVersionString</key><string>1.0.0</string>
@@ -451,8 +458,13 @@ build:
 bundle: build
 	rm -rf $(BUNDLE)
 	mkdir -p $(BUNDLE)/Contents/MacOS
+	mkdir -p $(BUNDLE)/Contents/Resources
 	cp $(BUILD) $(BUNDLE)/Contents/MacOS/$(APP)
 	cp Support/Info.plist $(BUNDLE)/Contents/Info.plist
+	cp assets/AppIcon.icns $(BUNDLE)/Contents/Resources/AppIcon.icns
+	cp assets/menubar/MenuBarIconTemplate.png $(BUNDLE)/Contents/Resources/
+	cp assets/menubar/MenuBarIconTemplate@2x.png $(BUNDLE)/Contents/Resources/
+	cp assets/menubar/MenuBarIconTemplate@3x.png $(BUNDLE)/Contents/Resources/
 	codesign --force --sign - $(BUNDLE)
 
 LSREG   = /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
