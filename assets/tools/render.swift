@@ -1,5 +1,6 @@
 // Renders an SVG to PNG at a given pixel size using AppKit only (no third-party deps).
 // usage: swift render.swift <in.svg> <out.png> <size>
+// usage: Added information in Readme.md file
 import AppKit
 
 let a = CommandLine.arguments
