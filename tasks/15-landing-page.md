@@ -1,10 +1,10 @@
 # Task 15 — Landing page on GitHub Pages
 
-Status: in-review
+Status: pr-open
 Phase: 6
 Branch: feature/landing-page
 Base: main
-PR: <url, filled by git-agent>
+PR: https://github.com/hexember/active-browser/pull/28
 Created: 2026-09-23
 
 ## Goal
