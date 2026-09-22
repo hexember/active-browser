@@ -18,6 +18,33 @@
     <string>13.0</string>
     <key>LSUIElement</key>
     <true/>
+    <!-- Declaring ActiveBrowser a viewer of HTML content is what makes it appear in
+         System Settings -> Desktop & Dock -> Default web browser. Claiming the http and
+         https schemes below is enough for Launch Services to route URLs to us, and enough
+         for NSWorkspace.setDefaultApplication (the menu bar item) to succeed -- but the
+         System Settings picker applies a stricter filter and lists only applications that
+         also register as HTML viewers. Every real browser on this machine declares these
+         (Safari is special-cased by the system); without them ActiveBrowser could be made
+         the default only from its own menu, never from System Settings.
+
+         ActiveBrowser never renders HTML. It hands every URL to a real browser, so being
+         listed as a viewer is a registration formality, not a claim about capability. -->
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>HTML Document</string>
+            <key>CFBundleTypeRole</key>
+            <string>Viewer</string>
+            <key>LSHandlerRank</key>
+            <string>None</string>
+            <key>LSItemContentTypes</key>
+            <array>
+                <string>public.html</string>
+                <string>public.xhtml</string>
+            </array>
+        </dict>
+    </array>
     <key>CFBundleURLTypes</key>
     <array>
         <dict>

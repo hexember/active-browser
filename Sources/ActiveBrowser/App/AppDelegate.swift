@@ -55,6 +55,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dispatcher.open(urls)
     }
 
+    /// Called when macOS asks us to open local files rather than URLs.
+    ///
+    /// Declaring `public.html` in `Info.plist` is what lists ActiveBrowser in System
+    /// Settings' default-browser picker, but it also makes us a possible handler for
+    /// `.html` files on disk. AppKit delivers those through this method and **not**
+    /// through `application(_:open:)`, which only receives the open-URLs Apple Event.
+    /// Without this, an HTML file opened while ActiveBrowser is its handler would
+    /// silently do nothing at all.
+    ///
+    /// File URLs go through the same dispatcher as everything else, so the file opens in
+    /// the browser you were last using -- the same rule the app applies to links.
+    func application(_ sender: NSApplication, openFiles filenames: [String]) {
+        bootstrapIfNeeded()
+        let urls = filenames.map { URL(fileURLWithPath: $0) }
+        dispatcher.open(urls)
+        sender.reply(toOpenOrPrint: urls.isEmpty ? .failure : .success)
+    }
+
     /// Suppresses the macOS 14+ console warning about restorable state. We have no windows.
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         true
