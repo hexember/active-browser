@@ -13,6 +13,8 @@ Source of truth is SVG; the binary formats below are generated from it.
 
 ## Regenerating
 
+Run these from `assets/`; the paths are relative.
+
 ```sh
 rm -rf /tmp/AppIcon.iconset && mkdir -p /tmp/AppIcon.iconset
 for s in 16 32 128 256 512; do
@@ -32,14 +34,13 @@ pointer inside it. The app icon adds the receding stack and colour; the menu bar
 monochrome reduction — the app icon's tinted title-bar strip becomes a divider line, since a
 template image has only black and alpha to work with.
 
-## Not yet wired into the bundle
+## How the bundle uses these
 
-Nothing here is referenced by the build. `Project.md` Phase 3 and `tasks/03-bundle-makefile.md`
-both state the bundle carries **no** `CFBundleIconFile` and **no** `Resources/` directory, and
-task 03 verifies that `find build/ActiveBrowser.app -type f` lists exactly three files. Adopting
-these assets is a spec change: it needs `CFBundleIconFile` in `Support/Info.plist`, a
-`Contents/Resources/` copy step in `make bundle` (before `codesign`), and task 03's file-count
-assertion updated. Do that as its own task, not as a drive-by edit.
+`make bundle` copies `AppIcon.icns` and the three `MenuBarIconTemplate` PNGs into
+`Contents/Resources/` before it runs `codesign`. `Support/Info.plist` names the app icon
+through `CFBundleIconFile` (`AppIcon`), and `MenuBarManager` loads the menu bar glyph by
+name, falling back to the `globe` SF Symbol when `Contents/Resources` is missing (an
+unbundled build).
 
 The menu bar image must be loaded with `isTemplate = true` so macOS tints it for light/dark
 menu bars and for the highlighted state.

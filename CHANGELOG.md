@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The repository moved to the `hexember` GitHub account.** Every link, the
   `install.sh` release source and the install one-liner now point to
   `hexember/active-browser`. Re-run the one-liner from the README to pick up the new URL.
+- README reorganized for users, with a new Privacy section; contributor material
+  (architecture, repository layout, releasing, local release testing) moved to
+  `CONTRIBUTING.md`.
 
 ### Fixed
 

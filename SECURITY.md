@@ -32,12 +32,4 @@ not writable by your user, it refuses rather than escalating.
 
 ## What the app can see
 
-ActiveBrowser receives every URL you open while it is your default browser, and it observes
-which applications you focus. It does **not**:
-
-- send anything over the network — the app makes no network requests of any kind;
-- write URLs to disk or log them persistently;
-- inspect or match on URL contents (routing is based purely on focus order).
-
-Stored state is two `UserDefaults` keys — which browsers participate, and your fallback
-browser — plus a launch-at-login opt-out flag. That's all, and it's local.
+What ActiveBrowser sees, what it never does, and what it stores are described in one place: [README.md → Privacy](README.md#privacy).
