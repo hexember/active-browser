@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest an idea
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening this, one thing worth knowing: ActiveBrowser routes purely by
+        **which browser you focused most recently**. It deliberately never inspects the
+        URL. If you want per-site rules ("all `github.com` links open in my work profile"),
+        that's a different design and [Finicky](https://github.com/johnste/finicky) or
+        Velja will serve you much better — that isn't a rejection, just a signpost.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: The situation, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like it to do?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Anything you've tried or considered?
