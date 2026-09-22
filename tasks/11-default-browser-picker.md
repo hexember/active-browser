@@ -4,7 +4,7 @@ Status: in-review
 Phase: 4
 Branch: fix/default-browser-listing
 Base: main
-PR: https://github.com/hexember/active-browser/pull/19 (reopened)
+PR: https://github.com/tajpuriya27/active-browser/pull/19 (reopened)
 Created: 2026-09-22
 
 ## Goal

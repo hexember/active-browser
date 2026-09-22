@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please report security issues privately rather than in a public issue: use
-[GitHub's private vulnerability reporting](https://github.com/hexember/active-browser/security/advisories/new)
+[GitHub's private vulnerability reporting](https://github.com/tajpuriya27/active-browser/security/advisories/new)
 for this repository.
 
 Please include the macOS version, the chip (Apple silicon or Intel), how ActiveBrowser was

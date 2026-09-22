@@ -6,7 +6,7 @@ contributions are welcome, and the project is easy to build.
 ## Build and run
 
 ```sh
-git clone https://github.com/hexember/active-browser.git
+git clone https://github.com/tajpuriya27/active-browser.git
 cd active-browser
 make install     # builds, installs to /Applications, registers, launches
 ```

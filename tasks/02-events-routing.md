@@ -4,7 +4,7 @@ Status: pr-open
 Phase: 2
 Branch: feature/events-routing
 Base: feature/core-model
-PR: https://github.com/hexember/active-browser/pull/4
+PR: https://github.com/tajpuriya27/active-browser/pull/4
 Created: 2026-09-20
 
 ## Goal

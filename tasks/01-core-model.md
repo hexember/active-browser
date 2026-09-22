@@ -4,7 +4,7 @@ Status: pr-open
 Phase: 1
 Branch: feature/core-model
 Base: main
-PR: https://github.com/hexember/active-browser/pull/3
+PR: https://github.com/tajpuriya27/active-browser/pull/3
 Created: 2026-09-20
 
 ## Goal

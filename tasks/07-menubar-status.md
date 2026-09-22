@@ -4,7 +4,7 @@ Status: pr-open
 Phase: 5
 Branch: feature/menubar-status
 Base: feature/launch-at-login
-PR: https://github.com/hexember/active-browser/pull/9
+PR: https://github.com/tajpuriya27/active-browser/pull/9
 Created: 2026-09-21
 
 ## Goal

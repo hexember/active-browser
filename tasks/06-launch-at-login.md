@@ -4,7 +4,7 @@ Status: pr-open
 Phase: 4
 Branch: feature/launch-at-login
 Base: feature/set-default-routing
-PR: https://github.com/hexember/active-browser/pull/8
+PR: https://github.com/tajpuriya27/active-browser/pull/8
 Created: 2026-09-21
 
 ## Goal

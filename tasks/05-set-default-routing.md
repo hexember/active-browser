@@ -4,7 +4,7 @@ Status: pr-open
 Phase: 4
 Branch: feature/set-default-routing
 Base: feature/make-install
-PR: https://github.com/hexember/active-browser/pull/7
+PR: https://github.com/tajpuriya27/active-browser/pull/7
 Created: 2026-09-20
 
 ## Goal
