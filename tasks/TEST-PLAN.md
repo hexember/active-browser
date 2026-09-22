@@ -279,6 +279,21 @@ https://github.com/hexember/active-browser/pull/24
 **Reset after this block**
 - System Settings → Desktop & Dock → *Default web browser* → your real browser.
 
+
+---
+
+## PR #27 — Task 16: links and install.sh point at hexember
+
+**Preconditions:** PR merged to `main`.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | Fresh Terminal: `curl -fsSL https://raw.githubusercontent.com/hexember/active-browser/main/install.sh \| sh` | Prints `Resolving the latest release of hexember/active-browser`, installs, ends with the Set-as-Default hint |
+| 2 | Open the README on GitHub | ci and release badges render; links go to `hexember/active-browser` |
+
+**Reset after this block**
+- Step 1 replaces any dev build in `/Applications`; `make install` to go back.
+
 ---
 
 # Final teardown — run this only when you are finished with everything above

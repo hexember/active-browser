@@ -1,10 +1,10 @@
 # Task 16 — Point every link and install.sh at the hexember account
 
-Status: in-review
+Status: pr-open
 Phase: 6
 Branch: chore/hexember-rename
 Base: main
-PR: <url, filled by git-agent>
+PR: https://github.com/hexember/active-browser/pull/27
 Created: 2026-09-23
 
 ## Goal
