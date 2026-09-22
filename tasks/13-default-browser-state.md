@@ -1,10 +1,10 @@
 # Task 13 — Default browser state in menu row
 
-Status: in-review
+Status: pr-open
 Phase: 4
 Branch: feature/default-browser-state
 Base: main
-PR: <url, filled by git-agent>
+PR: https://github.com/hexember/active-browser/pull/24
 Created: 2026-09-22
 
 ## Goal
