@@ -41,7 +41,19 @@ The two approaches aren't rivals so much as answers to different questions: *whe
 curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh
 ```
 
-Then open the menu bar icon and choose **Set as Default Browser**, and accept the macOS confirmation dialog.
+Then open the menu bar icon and choose **Set as Default Browser**, and accept the macOS
+confirmation dialog.
+
+> **Use the menu bar item — ActiveBrowser will not appear in System Settings → Desktop &
+> Dock → *Default web browser*.** That picker only lists applications signed with a
+> notarized Apple Developer ID, and ActiveBrowser is ad-hoc signed (see
+> [Known limitations](#known-limitations)). The menu bar item calls the same system API and
+> produces the same result — the confirmation dialog macOS shows you *is* the check a
+> Developer ID would otherwise provide. Once set, System Settings will display
+> ActiveBrowser as your current default; it just can't offer it in the list.
+
+To switch back later, pick your real browser in System Settings → Desktop & Dock →
+*Default web browser* as usual. Only the route *to* ActiveBrowser is different.
 
 The script checks your macOS version and CPU architecture, verifies the download's SHA-256 checksum, and validates the app bundle *before* it replaces anything. Re-running it is the upgrade path — safe to run with the app open.
 
@@ -186,6 +198,12 @@ Those two asset names are a published contract — `install.sh` builds its downl
 ## Known limitations
 
 - **Apple silicon only** in released builds. Building from source on Intel works; the published zip is `arm64`.
-- **Ad-hoc signed, not notarized.** Fine for `curl`, but a browser download would be quarantined.
+- **Ad-hoc signed, not notarized.** Two consequences. A browser download would be
+  quarantined (use the `curl` one-liner, which doesn't set the quarantine attribute). And
+  ActiveBrowser **cannot appear in System Settings' default-browser picker**, which macOS
+  restricts to verifiable developers — reasonably, since it is one click away from handing
+  an app all of your web traffic. Use *Set as Default Browser* in the menu bar instead; it
+  calls the same API and works. Fixing this needs an Apple Developer Program membership
+  plus notarization, which is out of scope for v1.
 - **Routing ignores the URL.** By design — see [Why this exists](#why-this-exists). If you need per-site rules, use Finicky or Velja.
 - **`http`/`https` only.** Other schemes are left to the system.

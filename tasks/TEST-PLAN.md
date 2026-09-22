@@ -1,5 +1,31 @@
 # Consolidated Manual Test Plan
 
+> **Correction — ActiveBrowser does not appear in System Settings → Desktop & Dock →
+> *Default web browser*.** Several steps below say to select it there; those steps cannot
+> pass as written. macOS restricts that picker to applications signed with a notarized
+> Apple Developer ID, and ActiveBrowser is ad-hoc signed. **Use the menu bar item →
+> *Set as Default Browser* instead** — it calls the same API, shows a confirmation dialog,
+> and sets the same binding. Verify the result with:
+>
+> ```sh
+> plutil -extract LSHandlers json -o - \
+>   ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist \
+>   | grep -o '"LSHandlerRoleAll":"[^"]*"[^}]*"LSHandlerURLScheme":"https"'
+> ```
+>
+> Steps that only ask you to *look* at the picker and count ActiveBrowser rows were
+> checking for duplicate Launch Services registrations. That check still matters, but read
+> it from the database instead:
+>
+> ```sh
+> /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+>   -dump | grep -c 'identifier: *com.local.activebrowser'   # must print 1
+> ```
+>
+> Switching *away* from ActiveBrowser in System Settings works normally — only the route
+> *to* it is different.
+
+
 Append-only, in merge order. Each entry is the `user` rows from that task's Test Steps. Run top to bottom after merging the corresponding PRs; reset steps at the end of each block.
 
 <!-- entries added by the main session when each PR opens -->
@@ -89,7 +115,7 @@ Steps 1 and 3–8 already ran green (routing, LRU promotion, running-first-beats
 
 | # | Action | Expected |
 |---|---|---|
-| 1 | **System Settings → Desktop & Dock → *Default web browser* → select `ActiveBrowser`.** macOS shows a confirmation dialog — accept it. | ActiveBrowser becomes the default. No Dock icon, no window appears. |
+| 1 | **Menu bar icon → *Set as Default Browser*.** macOS shows a confirmation dialog — accept it. *(The original step said to select ActiveBrowser in System Settings → Desktop & Dock; it isn't listed there — see the correction at the top of this file.)* | ActiveBrowser becomes the default: System Settings → Desktop & Dock now **displays** it as your default web browser, even though it was not offerable in the dropdown. No Dock icon, no window appears. |
 | 2 | Focus Brave, then switch to Terminal, then run `open https://example.com/u2` | Opens in **Brave**. |
 | 3 | Focus Arc, then Terminal, `open https://example.com/u3` | Opens in **Arc**. |
 | 4 | With Arc most recent, quit Arc, then `open https://example.com/u4` | Opens in **Brave** — the next most recently focused *running* browser. |
