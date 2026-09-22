@@ -91,6 +91,7 @@ One PR per task; a task never spans phases. Suggested split (the planner may spl
 | 08 | 5 | *Browsers* include/exclude + last-item guard, *Fallback* radio | exclusion changes routing |
 | 09 | 6 | `make release`, `install.sh` | one-liner installs from a local zip |
 | 10 | 6 | `.github/workflows/release.yml` | tag builds and publishes assets |
+| 18 | 6 | .github/workflows/pages.yml, _config.yml | pages workflow green; site shows README, no install.sh |
 
 
 ### Phase 1 — Core (`Core/`)
@@ -187,6 +188,7 @@ Goal: a user with no toolchain runs one command and has ActiveBrowser in `/Appli
   Usage: `curl -fsSL https://raw.githubusercontent.com/hexember/active-browser/main/install.sh | sh`
 - `make release`: `make bundle`, then `ditto -c -k --keepParent build/ActiveBrowser.app build/ActiveBrowser.app.zip` and `shasum -a 256` → `build/SHA256SUMS`.
 - GitHub Actions `release.yml` on tag `v*`: `macos-latest` runner, `make release`, attach zip + `SHA256SUMS` to the Release with `gh release create`.
+- Project site: `https://hexember.github.io/active-browser/` is `README.md` rendered by Jekyll (`jekyll-theme-cayman`) via `.github/workflows/pages.yml` on push to `main`. Only README, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT and CHANGELOG are published (`_config.yml` `exclude:`, plus a post-build allowlist check in the workflow). `install.sh` is never served from Pages; the one install URL stays `raw.githubusercontent.com`.
 - Signing: ad-hoc for v1. `curl` does not set the quarantine attribute, so an ad-hoc-signed bundle opens without Gatekeeper prompts via `install.sh`. Browser downloads and Homebrew *do* quarantine; if those paths are added later, add `make sign` (Developer ID) and `make notarize` (`notarytool`) targets first.
 - Homebrew Cask: out of scope for v1.
 
@@ -212,7 +214,9 @@ active-browser/
 ├── Package.swift
 ├── Makefile
 ├── install.sh                       # Phase 6
+├── _config.yml                      # Phase 6: GitHub Pages (Jekyll) config
 ├── .github/workflows/release.yml    # Phase 6
+├── .github/workflows/pages.yml      # Phase 6: README → GitHub Pages
 ├── .claude/{agents,rules}/          # subagents + always-on rules
 ├── docs/skills.md
 ├── tasks/                           # one file per task, from TEMPLATE.md (see CLAUDE.md)

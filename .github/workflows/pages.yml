@@ -1,0 +1,143 @@
+# pages -- publish README.md as the project website with Jekyll.
+#
+# The site at https://hexember.github.io/active-browser/ is README.md (served as
+# index.html) plus the four root docs it links to: CONTRIBUTING.md, SECURITY.md,
+# CODE_OF_CONDUCT.md and CHANGELOG.md, each rendered to <NAME>.html, plus the
+# theme's own assets/css/... files. That set is an allowlist. _config.yml's
+# exclude: keeps everything else out of the Jekyll source, and the "Published set
+# is exactly the allowlist" step below fails the build, so nothing is uploaded,
+# if anything else ends up in _site. Jekyll copies every non-Markdown file it is
+# not told to exclude verbatim, which is how the old site came to serve a copy
+# of install.sh.
+#
+# install.sh must never be served from Pages. The only install URL is
+# raw.githubusercontent.com/hexember/active-browser/main/install.sh. A second
+# copy on the site goes stale silently, and the old site's copy advertised the
+# old, unowned install domain. The post-build check also fails if that domain
+# string appears anywhere in the site.
+#
+# The zero-third-party-dependencies guardrail governs the Swift app. The
+# actions/* steps here are GitHub's own first-party actions, the same category
+# as actions/checkout in ci.yml. Adding a third-party action needs a re-plan
+# first, and it must then be pinned to a full commit SHA, not a tag. There is no
+# Gemfile and no Ruby setup: jekyll-build-pages brings its own pinned
+# github-pages gem.
+#
+# Pages is configured as build_type: workflow, so this file is the only thing
+# that updates the site. Deleting it freezes the site at its last deploy, which
+# is how the old site went stale.
+#
+# Pull requests run the same build and allowlist check, so a leaked file or a
+# missing page fails on the PR, before merge. The deploy job runs only for a
+# push to main and for workflow_dispatch; on a pull_request it is skipped.
+#
+# workflow_dispatch from a branch other than main fails at the deploy job,
+# because the github-pages environment only accepts main. This is expected.
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - README.md
+      - CONTRIBUTING.md
+      - SECURITY.md
+      - CODE_OF_CONDUCT.md
+      - CHANGELOG.md
+      - _config.yml
+      - .github/workflows/pages.yml
+  pull_request:
+    paths:
+      - README.md
+      - CONTRIBUTING.md
+      - SECURITY.md
+      - CODE_OF_CONDUCT.md
+      - CHANGELOG.md
+      - _config.yml
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build:
+    # jekyll-build-pages is a Docker container action; it does not run on macOS.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+
+      - name: Published set is exactly the allowlist
+        shell: bash
+        run: |
+          set -euo pipefail
+          fail=0
+
+          # 1. Nothing outside the allowlist. The theme's assets live under
+          #    assets/{css,js,images,fonts}/; the repository's own assets/ is
+          #    excluded and has no such subdirectories.
+          extra=$(cd _site && find . -type f | sed 's|^\./||' | sort \
+            | grep -vE '^(index|CONTRIBUTING|SECURITY|CODE_OF_CONDUCT|CHANGELOG)\.html$' \
+            | grep -vE '^README\.html$' \
+            | grep -vE '^assets/(css|js|images|fonts)/' || true)
+          if [ -n "$extra" ]; then
+            echo "::error::files outside the published allowlist (add to _config.yml exclude:, or to this allowlist and paths:)"
+            printf '%s\n' "$extra"
+            fail=1
+          fi
+
+          # 2. Every published page exists and is non-empty.
+          for f in index CONTRIBUTING SECURITY CODE_OF_CONDUCT CHANGELOG; do
+            if [ ! -s "_site/$f.html" ]; then
+              echo "::error::_site/$f.html is missing or empty"
+              fail=1
+            fi
+          done
+
+          # 3. The old, unowned install domain appears nowhere. Case-sensitive on
+          #    purpose: ActiveBrowser.app is the bundle name.
+          if hits=$(grep -rl 'activebrowser\.app' _site); then
+            echo "::error::the old install domain appears in the site"
+            printf '%s\n' "$hits"
+            fail=1
+          fi
+
+          # 4. Warning only: a missing button must not block replacing a stale site.
+          if [ -f _site/index.html ] && ! grep -q 'View on GitHub' _site/index.html; then
+            echo "::warning::index.html has no 'View on GitHub' button"
+          fi
+
+          if [ "$fail" -ne 0 ]; then exit 1; fi
+          echo "published set matches the allowlist"
+
+      - uses: actions/upload-pages-artifact@v5
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # A running deployment is never cancelled mid-flight. Job-level, so PR
+    # builds never share this group and cannot cancel a queued main deploy.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
