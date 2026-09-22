@@ -7,16 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The repository moved to the `hexember` GitHub account.** Every link, the
+  `install.sh` release source and the install one-liner now point to
+  `hexember/active-browser`. Re-run the one-liner from the README to pick up the new URL.
+
 ### Fixed
 
 - **The menu bar icon never appeared.** `MenuBarManager` was never constructed, so no
   `NSStatusItem` was created: no icon, no *Browsers* / *Fallback Browser* submenus, no
   *Set as Default Browser*, no *Quit*, and no login-item registration at launch. URL
   routing kept working the whole time — `application(_:open:)` bootstraps itself — which
-  made the app look half-alive rather than broken. ([#17](https://github.com/tajpuriya27/active-browser/pull/17))
+  made the app look half-alive rather than broken. ([#17](https://github.com/hexember/active-browser/pull/17))
 - **`make release` did nothing.** The target was listed in `.PHONY` but its recipe was
   absent, so the release workflow produced no artefacts and `v0.1.0` published without
-  them. ([#16](https://github.com/tajpuriya27/active-browser/pull/16))
+  them. ([#16](https://github.com/hexember/active-browser/pull/16))
 
 Both defects were introduced by merges that dropped a hunk while keeping the surrounding
 code, so everything still compiled and every branch-level check passed.
@@ -53,5 +59,5 @@ Initial release.
 > the menu features above can be reached. Link routing works. Use a build from `main`
 > until the next release.
 
-[Unreleased]: https://github.com/tajpuriya27/active-browser/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/tajpuriya27/active-browser/releases/tag/v0.1.0
+[Unreleased]: https://github.com/hexember/active-browser/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/hexember/active-browser/releases/tag/v0.1.0
