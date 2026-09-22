@@ -169,3 +169,25 @@ Steps 12–14 are recorded `not run — needs user step 9 / 10(b) / 11` and will
   ```
 - Close the `https://example.com/t08*` tabs and relaunch any browser step 4 had you quit (they restore their sessions).
 - **Leave `/Applications/ActiveBrowser.app` installed and running.** Do not run `make clean` and do not delete the defaults domain — the full teardown is the last block in this file.
+
+---
+
+## PR #11 — Task 09: `make release` + `install.sh` (`feature/release-install-sh`, base `feature/browsers-fallback-menu`)
+
+**No Swift changed.** All 11 `ai` steps pass, including the two that had to keep task 04's duplicate-registration fix closed: exactly **one** Launch Services record at T+12 s *and* T+60 s, before and after two consecutive `install.sh` runs. `make release` deletes `build/ActiveBrowser.app` after zipping, because the scanner registers a freshly built bundle ~1–3 s *after* the ~1 s target returns — `lsregister -u` alone cannot win that race.
+
+`install.sh` **stages, validates, then replaces**: it extracts to a temp dir and checks bundle id, architecture and checksum before it kills the running app or deletes `/Applications/ActiveBrowser.app`. All three negative tests (old macOS, missing zip, one-byte-corrupted zip that still extracts) refuse with the installed app's pid and mtime unchanged.
+
+**Your `/Applications/ActiveBrowser.app` was reinstalled by `install.sh` during these steps — that was the test.** It is running, adhoc-signed, quarantine-free, and your settings, login item and default-browser binding were all verified untouched.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | Look at the menu bar, click the ActiveBrowser icon, and read the menu. Then open System Settings → General → **Login Items & Extensions**. | The menu bar item is present and the menu shows *Routing to:*, *Recent:*, **Browsers ▸**, **Fallback Browser ▸**, *Set as Default Browser*, a **ticked** *Launch at Login*, and *Quit*. Login Items lists **ActiveBrowser exactly once** — not twice, not zero times. A duplicate or missing entry would mean the delete-and-replace disturbed the login item. |
+| 2 | System Settings → Desktop & Dock → **Default web browser** — open the dropdown and count the ActiveBrowser entries. **Do not change the selection** (leave it on Arc unless you are also running PR #7's steps). | **ActiveBrowser appears exactly once.** Two identical rows would mean `make release` left a second registered bundle in the repo's `build/` directory — the defect task 04 fixed and this task had to avoid re-introducing. |
+
+> **Not testable in this PR:** the real one-liner `curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh` needs a **published GitHub Release with both assets** and a **public repository** — neither exists until task 10's workflow runs on a pushed tag, and the repo is currently private. What this PR proves is that every step *after* the download works end to end on a real zip. The one-liner is PR #12's step.
+
+**Reset after this block**
+- **Nothing to undo.** These steps only look; they change no state.
+- `build/ActiveBrowser.app.zip` and `build/SHA256SUMS` are left on disk deliberately — task 10 uses them. They are **not** committed. `make clean` removes them when you no longer want them, but do not run it while testing PR #12.
+- **Leave `/Applications/ActiveBrowser.app` installed and running.**
