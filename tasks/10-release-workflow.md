@@ -4,7 +4,7 @@ Status: pr-open
 Phase: 6
 Branch: feature/release-workflow
 Base: feature/release-install-sh
-PR: <url, filled by git-agent>
+PR: https://github.com/tajpuriya27/active-browser/pull/12
 Created: 2026-09-22
 
 ## Goal
