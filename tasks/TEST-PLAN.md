@@ -101,3 +101,20 @@ Steps 1 and 3–8 already ran green (routing, LRU promotion, running-first-beats
 - **Restore your default browser: System Settings → Desktop & Dock → *Default web browser* → `Arc`.** Accept the dialog. This is mandatory.
 - Relaunch any browser the steps quit (they restore their tabs) and close the `example.com/*` tabs the run created.
 - **Leave `/Applications/ActiveBrowser.app` installed and running** — tasks 06–08 test against it. Do not run `make clean` or delete the defaults domain; the full teardown is the last block in this file.
+
+---
+
+## PR #8 — Task 06: Launch at Login (`feature/launch-at-login`, base `feature/set-default-routing`)
+
+All 7 `ai` steps pass. **This PR fixed a silent no-op**: `Project.md` §5's gate (`status != .notRegistered`) never fires on macOS 26, because `SMAppService` reports `.notFound(3)` when no login item has ever existed — so the app never registered itself. Verified after the fix: status moved `notFound(3)` → `enabled(1)`, and a `build/` copy correctly logs `skipped, bundle is not under /Applications`.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | Open **System Settings → General → Login Items & Extensions** and look at the *Open at Login* list. | **ActiveBrowser** is listed, switch on. It may show as from an unidentified developer — expected for an ad-hoc-signed build, not a failure. Leave it as-is for now. |
+
+**Reset after this block — read the ordering, it is not obvious**
+
+This is the first task that creates state surviving a reboot. `make clean` does **not** remove a login item, and neither does quitting the app or deleting it from `/Applications`.
+
+- **While you are still testing tasks 07–08** (which need the installed copy): switch the item **off** rather than removing it with `−`. An off switch leaves the status at `requiresApproval(2)`, which the gate deliberately never re-enables, so it stays off. A `−` removal resets the status to `notRegistered`/`notFound`, and the **next launch re-adds it**.
+- **At the final teardown**, do it in this order: `pkill -x ActiveBrowser` → `rm -rf /Applications/ActiveBrowser.app` → *then* remove the entry with `−`. Removing it while the app is still installed is what lets it come back.
