@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:active-browser}",
+            "name": "Debug ActiveBrowser",
+            "target": "ActiveBrowser",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug ActiveBrowser"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:active-browser}",
+            "name": "Release ActiveBrowser",
+            "target": "ActiveBrowser",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release ActiveBrowser"
+        }
+    ]
+}

@@ -24,3 +24,10 @@ DerivedData/
 *.cer
 *.mobileprovision
 notarize.env
+
+## IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

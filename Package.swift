@@ -5,6 +5,6 @@ let package = Package(
     name: "ActiveBrowser",
     platforms: [.macOS(.v13)],
     targets: [
-        .target(name: "ActiveBrowser", path: "Sources/ActiveBrowser")
+        .executableTarget(name: "ActiveBrowser", path: "Sources/ActiveBrowser")
     ]
 )
