@@ -4,7 +4,7 @@ Status: in-review
 Phase: 6
 Branch: chore/readme-restructure
 Base: main
-PR: <url, filled by git-agent>
+PR: https://github.com/hexember/active-browser/pull/29
 Created: 2026-09-23
 
 ## Goal
