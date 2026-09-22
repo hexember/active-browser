@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Landing page at https://hexember.github.io/active-browser/ (install, how it works,
+  uninstall, privacy), published from `site/` by a GitHub Pages workflow.
+
 ### Changed
 
 - **The repository moved to the `hexember` GitHub account.** Every link, the

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'">
+<title>ActiveBrowser: open links in the browser you're using</title>
+<meta name="description" content="A macOS menu bar agent that opens every link in the browser you were just using.">
+<link rel="canonical" href="https://hexember.github.io/active-browser/">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="icon" href="icon.png" type="image/png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta property="og:title" content="ActiveBrowser: open links in the browser you're using">
+<meta property="og:description" content="A macOS menu bar agent that opens every link in the browser you were just using.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://hexember.github.io/active-browser/">
+<meta property="og:image" content="https://hexember.github.io/active-browser/icon.png">
+<meta name="twitter:card" content="summary">
+<script src="copy.js" defer></script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header>
+  <nav aria-label="Sections">
+    <a href="#why">Why</a>
+    <a href="#how">How it works</a>
+    <a href="#install">Install</a>
+    <a href="#uninstall">Uninstall</a>
+    <a href="#faq">FAQ</a>
+  </nav>
+</header>
+
+<main id="main">
+
+<section id="top" class="hero">
+  <img src="icon.svg" alt="ActiveBrowser app icon" width="96" height="96">
+  <h1>ActiveBrowser</h1>
+  <p class="lead">A macOS menu bar app that opens every link in the browser you were just using.</p>
+  <pre><code id="install-cmd">curl -fsSL https://raw.githubusercontent.com/hexember/active-browser/main/install.sh | sh</code></pre>
+  <p class="copy-row">
+    <button type="button" id="copy-btn" hidden>Copy</button>
+    <span id="copy-status" role="status" aria-live="polite"></span>
+  </p>
+  <p>
+    <a href="https://github.com/hexember/active-browser">Source on GitHub</a> ·
+    <a href="https://github.com/hexember/active-browser/releases/latest">Latest release</a>
+  </p>
+  <p class="muted">macOS 13 or later · Apple silicon · MIT licensed</p>
+</section>
+
+<section id="why">
+  <h2>Why</h2>
+  <p>macOS allows exactly one default browser. So a link from Slack, Mail, Notes or Terminal always opens there, not in the browser you're working in.</p>
+  <p>Existing tools each ask you to decide something. Rules-based tools (Finicky, Velja) need rules you write and maintain. Pickers (Browserosaurus, Choosy, Bumpr) ask you on every link.</p>
+  <p>ActiveBrowser uses your recent focus instead. You already told the system which browser you're working in, by working in it.</p>
+  <p><strong>When a rules-based tool is the better choice:</strong> if your routing depends on the URL, for example "all <code>github.com</code> links open in the work profile", use Finicky or Velja. ActiveBrowser never looks at the URL.</p>
+</section>
+
+<section id="how">
+  <h2>How it works</h2>
+  <ol>
+    <li>It remembers the order in which you focus your browsers, from macOS app-activation notifications, with no polling.</li>
+    <li>You set it as the default browser once.</li>
+    <li>Each link goes to the most recently focused browser that is running. Otherwise it goes to the most recently focused one, which is launched. Otherwise it goes to your Fallback Browser, and otherwise to the first browser found.</li>
+  </ol>
+  <ul>
+    <li>A link is never dropped, and it is never routed back to ActiveBrowser itself.</li>
+    <li>It lives in the menu bar only: no Dock icon, no windows.</li>
+    <li>Idle memory is capped at 25 MB (typically about 12 MB).</li>
+    <li>It uses only Apple frameworks, with no third-party code.</li>
+    <li>The menu lets you include or exclude browsers and pick the Fallback Browser.</li>
+    <li>It adds itself as a login item on first launch from <code>/Applications</code>, so it is running before your first click. You can switch this off with <em>Launch at Login</em> in the menu.</li>
+  </ul>
+</section>
+
+<section id="install">
+  <h2>Install</h2>
+  <p>Run this in Terminal:</p>
+  <pre><code>curl -fsSL https://raw.githubusercontent.com/hexember/active-browser/main/install.sh | sh</code></pre>
+
+  <h3>What the script does</h3>
+  <ul>
+    <li>Checks for macOS 13+, a supported CPU and a writable <code>/Applications</code>.</li>
+    <li>Resolves the latest release through the GitHub API, falling back to the latest-release redirect.</li>
+    <li>Downloads <code>ActiveBrowser.app.zip</code> and <code>SHA256SUMS</code> and verifies the checksum.</li>
+    <li>Extracts to a temp directory and checks the bundle id and architecture before anything is replaced.</li>
+    <li>Quits a running copy, replaces <code>/Applications/ActiveBrowser.app</code>, registers it with Launch Services and launches it.</li>
+  </ul>
+  <p>It changes nothing else: no settings, no login items, no default-browser binding, no <code>sudo</code>. Running it again is the upgrade path.</p>
+
+  <h3>Manual download</h3>
+  <p>You can download the zip from <a href="https://github.com/hexember/active-browser/releases/latest">Releases</a>. The app is ad-hoc signed, not notarized, and a browser download is quarantined, so macOS will warn on first launch. The one-liner avoids this because <code>curl</code> does not quarantine.</p>
+
+  <h3>Build from source</h3>
+  <pre><code>git clone https://github.com/hexember/active-browser.git
+cd active-browser
+make install</code></pre>
+  <p>Intel Macs must use this route, because released builds are arm64-only.</p>
+
+  <h3>Final step</h3>
+  <p>Click the menu bar icon, choose <em>Set as Default Browser</em>, and accept the macOS confirmation dialog. The menu row then reads <em>✓ Default Browser</em>.</p>
+</section>
+
+<section id="uninstall">
+  <h2>Uninstall</h2>
+  <p>Order matters — removing the login item while the app is still installed lets the next launch re-create it.</p>
+  <pre><code>pkill -x ActiveBrowser
+rm -rf /Applications/ActiveBrowser.app
+defaults delete com.local.activebrowser   # optional: drop saved settings</code></pre>
+  <p>Then System Settings → General → <strong>Login Items &amp; Extensions</strong> → select ActiveBrowser → <strong>−</strong>, and set your real default browser back in System Settings → Desktop &amp; Dock.</p>
+</section>
+
+<section id="faq">
+  <h2>FAQ</h2>
+  <details>
+    <summary>Does it read or send my URLs?</summary>
+    <p>No. It hands each URL to a browser without inspecting it. The app contains no networking code and no telemetry or analytics. It stores only your menu choices (included browsers, Fallback Browser, and a Launch at Login opt-out) in <code>UserDefaults</code> (<code>com.local.activebrowser</code>). Only installing goes online: the one-liner fetches <code>install.sh</code> from <code>raw.githubusercontent.com</code>, and the script downloads the release from GitHub (<code>api.github.com</code>, <code>github.com</code>, and GitHub&rsquo;s release-download host).</p>
+  </details>
+  <details>
+    <summary>Why is there no Gatekeeper prompt?</summary>
+    <p>The app is ad-hoc signed, not notarized. <code>curl</code> doesn't set the quarantine attribute, so a <code>curl</code>-installed copy opens without a warning. Downloading the zip through a browser <em>would</em> quarantine it, so use the one-liner.</p>
+  </details>
+  <details>
+    <summary>Why not Finicky or Velja?</summary>
+    <p>Use them if your routing depends on the URL; ActiveBrowser routes by where you are working. See <a href="#why">Why</a>.</p>
+  </details>
+  <details>
+    <summary>Does it handle other URL schemes?</summary>
+    <p>No. Only <code>http</code> and <code>https</code> are handled; other schemes are left to the system.</p>
+  </details>
+  <details>
+    <summary>What does this site collect?</summary>
+    <p>Nothing. No cookies, no analytics, no third-party requests.</p>
+  </details>
+</section>
+
+</main>
+
+<footer>
+  <p>
+    <a href="https://github.com/hexember/active-browser/blob/main/LICENSE">MIT License</a> ·
+    <a href="https://github.com/hexember/active-browser">Source on GitHub</a> ·
+    <a href="https://github.com/hexember/active-browser/releases">Releases</a>
+  </p>
+</footer>
+</body>
+</html>

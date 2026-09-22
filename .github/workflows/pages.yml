@@ -1,0 +1,72 @@
+# pages -- publish the landing page to https://hexember.github.io/active-browser/.
+# There is no custom domain.
+#
+# One-time setup: repo Settings -> Pages -> Build and deployment -> Source must be
+# "GitHub Actions" (the default GITHUB_TOKEN cannot enable Pages itself).
+#
+# install.sh is NOT served from Pages. The one-liner fetches it from
+# raw.githubusercontent.com on main, so there is exactly one advertised install URL.
+# A committed site/install.sh (or site/CNAME) fails the build.
+#
+# assets/icon.svg and assets/icon-1024.png are the single source of the icon. They
+# are copied in as icon.svg and icon.png at deploy time; a committed site/icon.svg or
+# site/icon.png fails the build.
+#
+# Only GitHub's first-party actions/* are used (same category as actions/checkout
+# in ci.yml); the zero-dependency rule applies to the Swift app, not to CI.
+
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'site/**'
+      - 'assets/icon.svg'
+      - 'assets/icon-1024.png'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never cancel a deployment that is already running.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - name: Assemble site with a deploy-time copy of the icon
+        run: |
+          set -euo pipefail
+          for f in icon.svg icon.png; do
+            if [ -e "site/$f" ]; then echo "::error::site/$f must not be committed; it is copied from assets/ at deploy time" >&2; exit 1; fi
+          done
+          for f in install.sh CNAME; do
+            if [ -e "site/$f" ]; then echo "::error::site/$f must not be published; the only install URL is raw.githubusercontent.com and there is no custom domain" >&2; exit 1; fi
+          done
+          mkdir _site && cp -R site/. _site/
+          cp assets/icon.svg _site/icon.svg
+          cp assets/icon-1024.png _site/icon.png
+          cmp assets/icon.svg _site/icon.svg
+          cmp assets/icon-1024.png _site/icon.png
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

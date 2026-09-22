@@ -91,6 +91,7 @@ One PR per task; a task never spans phases. Suggested split (the planner may spl
 | 08 | 5 | *Browsers* include/exclude + last-item guard, *Fallback* radio | exclusion changes routing |
 | 09 | 6 | `make release`, `install.sh` | one-liner installs from a local zip |
 | 10 | 6 | `.github/workflows/release.yml` | tag builds and publishes assets |
+| 15 | 6 | Landing page on GitHub Pages: `site/{index.html,style.css,copy.js}`, `.github/workflows/pages.yml` (icon copied from `assets/` at deploy time) | page renders under `/active-browser/`, copy button works |
 
 
 ### Phase 1 — Core (`Core/`)
@@ -189,6 +190,7 @@ Goal: a user with no toolchain runs one command and has ActiveBrowser in `/Appli
 - GitHub Actions `release.yml` on tag `v*`: `macos-latest` runner, `make release`, attach zip + `SHA256SUMS` to the Release with `gh release create`.
 - Signing: ad-hoc for v1. `curl` does not set the quarantine attribute, so an ad-hoc-signed bundle opens without Gatekeeper prompts via `install.sh`. Browser downloads and Homebrew *do* quarantine; if those paths are added later, add `make sign` (Developer ID) and `make notarize` (`notarytool`) targets first.
 - Homebrew Cask: out of scope for v1.
+- GitHub Pages (landing page): `.github/workflows/pages.yml` publishes `site/` to https://hexember.github.io/active-browser/ on pushes to `main` that touch `site/**`, `assets/icon.svg`, `assets/icon-1024.png` or the workflow, and on manual dispatch. There is no custom domain. One-time setup, before the first deploy: repo Settings → Pages → Build and deployment → Source: **GitHub Actions**. At deploy time the workflow copies `assets/icon.svg` → `icon.svg` and `assets/icon-1024.png` → `icon.png` into the artifact. The build fails if `site/` contains `icon.svg`, `icon.png`, `install.sh` or `CNAME`. `install.sh` is deliberately not served from Pages, so the raw.githubusercontent one-liner stays the only advertised install URL.
 
 **Verify (Phase 6)** — proves a stranger's machine can install it. Steps 4–6 need the repo to be public.
 1. `make release` — expected: `build/ActiveBrowser.app.zip` and `build/SHA256SUMS` exist; `shasum -a 256 -c build/SHA256SUMS` (run from `build/`) prints `OK`.
@@ -198,6 +200,7 @@ Goal: a user with no toolchain runs one command and has ActiveBrowser in `/Appli
 5. `xattr -l /Applications/ActiveBrowser.app` — expected: **no** `com.apple.quarantine` line (this is why curl works without notarization).
 6. Run the one-liner again with the app running — expected: it replaces the app in place without error (idempotent upgrade path).
 7. Repeat Phase 4 steps 1–3 on the curl-installed copy — expected: routing works identically.
+8. `for p in "" style.css copy.js icon.svg icon.png; do curl -fsS -o /dev/null -w "%{http_code} /$p\n" https://hexember.github.io/active-browser/$p; done; curl -s -o /dev/null -w "%{http_code} install.sh\n" https://hexember.github.io/active-browser/install.sh` — expected: `200` on the five page lines and `404 install.sh`.
 
 Reset: same as Phase 4.
 
@@ -212,7 +215,9 @@ active-browser/
 ├── Package.swift
 ├── Makefile
 ├── install.sh                       # Phase 6
+├── site/{index.html,style.css,copy.js}  # Phase 6 landing page; icon copied in at deploy time
 ├── .github/workflows/release.yml    # Phase 6
+├── .github/workflows/pages.yml      # Phase 6: publishes site/ to GitHub Pages
 ├── .claude/{agents,rules}/          # subagents + always-on rules
 ├── docs/skills.md
 ├── tasks/                           # one file per task, from TEMPLATE.md (see CLAUDE.md)

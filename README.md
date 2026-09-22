@@ -7,6 +7,8 @@
 
 **A macOS menu bar agent that opens every link in the browser you were just using.**
 
+Website: [hexember.github.io/active-browser](https://hexember.github.io/active-browser/)
+
 No rules to write. No picker to click. You set it as your default browser once, and from then on a link clicked anywhere — Slack, Mail, Notes, Terminal — opens in whichever browser you most recently had in front of you.
 
 ```
@@ -196,6 +198,7 @@ Support/          Info.plist (the bundle manifest)
 install.sh        the curl installer
 Makefile          build, bundle, install, release
 docs/             background notes
+site/             the landing page (GitHub Pages)
 ```
 
 Three directories are **history, not instructions**: `tasks/`, `Project.md`, and
