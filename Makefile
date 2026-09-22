@@ -37,6 +37,22 @@ run: bundle
 	-pkill -x $(APP)
 	open $(BUNDLE)
 
+# `make release` - build the distributable zip and its checksum.
+#
+# The zip and SHA256SUMS are the release artefacts and survive; the .app does not.
+# `ditto -c -k --keepParent` puts ActiveBrowser.app/ at the top level of the zip,
+# which is the name install.sh extracts. `rm -rf $(BUNDLE)` is the same duplicate-
+# registration fix as `install:`: the Launch Services scanner registers whatever
+# .app is on disk ~1-3s *after* this ~1s target has returned, so the build copy is
+# deleted rather than raced; the `-u` must follow that `rm`, never precede it.
+# shasum writes a *bare* filename, so the sums are verified from build/.
+release: bundle
+	rm -f build/$(APP).app.zip build/SHA256SUMS
+	ditto -c -k --keepParent $(BUNDLE) build/$(APP).app.zip
+	cd build && shasum -a 256 $(APP).app.zip > SHA256SUMS
+	rm -rf $(BUNDLE)
+	-$(LSREG) -u $(BUNDLE)
+
 # `make clean` - unregister the build copy, delete .build/ and build/
 clean:
 	-$(LSREG) -u $(BUNDLE)
