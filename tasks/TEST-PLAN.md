@@ -261,6 +261,26 @@ record both survive the change.
 
 ---
 
+# PR #24 — Task 13: default-browser state in the menu row
+
+https://github.com/hexember/active-browser/pull/24
+
+**Preconditions**
+- `make install` on the PR branch; ActiveBrowser running from `/Applications`.
+- ActiveBrowser is currently the default web browser, so start with step 1.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | Click the ActiveBrowser menu bar icon | The row above *Launch at Login* reads **✓ Default Browser**, greyed out; hovering does not highlight it and clicking does nothing. |
+| 2 | System Settings → Desktop & Dock → *Default web browser* → **Safari**, then reopen the menu | The row reads **Set as Default Browser**, with no check, and is clickable. |
+| 3 | Click *Set as Default Browser* → accept the macOS dialog → reopen the menu | The row reads **✓ Default Browser** again. |
+| 4 | (optional) Switch to Safari again, click *Set as Default Browser*, **decline** the dialog, reopen the menu | The row still reads **Set as Default Browser**. |
+
+**Reset after this block**
+- System Settings → Desktop & Dock → *Default web browser* → your real browser.
+
+---
+
 # Final teardown — run this only when you are finished with everything above
 
 Order matters; doing it out of order lets the login item come back.
