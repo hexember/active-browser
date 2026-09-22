@@ -91,6 +91,7 @@ One PR per task; a task never spans phases. Suggested split (the planner may spl
 | 08 | 5 | *Browsers* include/exclude + last-item guard, *Fallback* radio | exclusion changes routing |
 | 09 | 6 | `make release`, `install.sh` | one-liner installs from a local zip |
 | 10 | 6 | `.github/workflows/release.yml` | tag builds and publishes assets |
+| 14 | 6 | Repo owner → hexember; `site/` + `pages.yml` serve `install.sh` at activebrowser.app | domain one-liner installs |
 
 
 ### Phase 1 — Core (`Core/`)
@@ -179,25 +180,27 @@ Goal: a user with no toolchain runs one command and has ActiveBrowser in `/Appli
 
 - `install.sh` at the repo root:
   1. `set -euo pipefail`; refuse to run on anything but macOS 13+ / arm64 or x86_64 as built.
-  2. Resolve the latest release tag via `https://api.github.com/repos/tajpuriya27/active-browser/releases/latest`.
+  2. Resolve the latest release tag via `https://api.github.com/repos/hexember/active-browser/releases/latest`.
   3. `curl -fsSL` the `ActiveBrowser.app.zip` asset to a temp dir; verify the `SHA256SUMS` asset published alongside it.
   4. `pkill -x ActiveBrowser || true`; `rm -rf /Applications/ActiveBrowser.app`; `ditto -x -k` the zip into `/Applications`.
   5. `lsregister -f /Applications/ActiveBrowser.app`, then `open -a ActiveBrowser` so Launch Services indexes the URL schemes and the menu bar item appears.
   6. Print next step: open the menu bar item → "Set as Default Browser".
-  Usage: `curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh`
+  Usage: `curl -fsSL https://activebrowser.app/install.sh | sh`
 - `make release`: `make bundle`, then `ditto -c -k --keepParent build/ActiveBrowser.app build/ActiveBrowser.app.zip` and `shasum -a 256` → `build/SHA256SUMS`.
 - GitHub Actions `release.yml` on tag `v*`: `macos-latest` runner, `make release`, attach zip + `SHA256SUMS` to the Release with `gh release create`.
 - Signing: ad-hoc for v1. `curl` does not set the quarantine attribute, so an ad-hoc-signed bundle opens without Gatekeeper prompts via `install.sh`. Browser downloads and Homebrew *do* quarantine; if those paths are added later, add `make sign` (Developer ID) and `make notarize` (`notarytool`) targets first.
 - Homebrew Cask: out of scope for v1.
+- GitHub Pages (`.github/workflows/pages.yml`) publishes `site/` plus a deploy-time copy of the root `install.sh` to `https://activebrowser.app`. The root file is the only committed copy. The custom domain is set in repo Settings → Pages, not by a `CNAME` file (Actions-deployed Pages ignores one). Fallback URL: `https://raw.githubusercontent.com/hexember/active-browser/main/install.sh`.
 
-**Verify (Phase 6)** — proves a stranger's machine can install it. Steps 4–6 need the repo to be public.
+**Verify (Phase 6)** — proves a stranger's machine can install it. Steps 4–6 need the repo to be public and activebrowser.app live on Pages.
 1. `make release` — expected: `build/ActiveBrowser.app.zip` and `build/SHA256SUMS` exist; `shasum -a 256 -c build/SHA256SUMS` (run from `build/`) prints `OK`.
 2. `git tag v0.1.0 && git push origin v0.1.0` — expected: the `release` workflow runs green on GitHub Actions and the Release page for `v0.1.0` shows both assets.
 3. Simulate a fresh machine: quit ActiveBrowser, `rm -rf /Applications/ActiveBrowser.app`, `lsregister -kill -r -domain local -domain user`.
-4. Run the one-liner: `curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh` — expected: script prints each step, finishes with the "Set as Default Browser" hint, menu bar item appears.
+4. Run the one-liner: `curl -fsSL https://activebrowser.app/install.sh | sh` — expected: script prints each step, finishes with the "Set as Default Browser" hint, menu bar item appears.
 5. `xattr -l /Applications/ActiveBrowser.app` — expected: **no** `com.apple.quarantine` line (this is why curl works without notarization).
-6. Run the one-liner again with the app running — expected: it replaces the app in place without error (idempotent upgrade path).
+6. Run the one-liner again with the app running (`curl -fsSL https://activebrowser.app/install.sh | sh`) — expected: it replaces the app in place without error (idempotent upgrade path).
 7. Repeat Phase 4 steps 1–3 on the curl-installed copy — expected: routing works identically.
+8. `curl -fsSL https://activebrowser.app/install.sh | diff - install.sh` — expected: no output.
 
 Reset: same as Phase 4.
 
@@ -212,7 +215,8 @@ active-browser/
 ├── Package.swift
 ├── Makefile
 ├── install.sh                       # Phase 6
-├── .github/workflows/release.yml    # Phase 6
+├── .github/workflows/{ci,release,pages}.yml   # Phase 6 (pages: serves site/ + install.sh)
+├── site/index.html                  # Phase 6 landing page for activebrowser.app; install.sh is copied in at deploy time
 ├── .claude/{agents,rules}/          # subagents + always-on rules
 ├── docs/skills.md
 ├── tasks/                           # one file per task, from TEMPLATE.md (see CLAUDE.md)
