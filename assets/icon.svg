@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5C8BFF"/>
+      <stop offset="0.55" stop-color="#3355E8"/>
+      <stop offset="1" stop-color="#1E2A9E"/>
+    </linearGradient>
+    <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="amber" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#FFD166"/>
+      <stop offset="1" stop-color="#FF9E2C"/>
+    </linearGradient>
+  </defs>
+
+  <!-- squircle plate -->
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#sheen)"/>
+
+  <!-- artwork --><g transform="translate(0 22) translate(512 512) scale(1.13) translate(-512 -512)"><!-- back window (the rest of the stack) -->
+  <g opacity="0.30">
+    <rect x="360" y="252" width="404" height="318" rx="46" fill="#FFFFFF"/>
+  </g>
+  <g opacity="0.16">
+    <rect x="300" y="290" width="404" height="318" rx="46" fill="#FFFFFF"/>
+  </g>
+
+  <!-- front window (the active browser) -->
+  <g>
+    <rect x="236" y="336" width="470" height="366" rx="52" fill="#FFFFFF"/>
+    <path d="M236 388 a52 52 0 0 1 52 -52 h366 a52 52 0 0 1 52 52 v18 h-470 z" fill="#DCE4F7"/>
+    <circle cx="296" cy="380" r="15" fill="#9FB0D4"/>
+    <circle cx="346" cy="380" r="15" fill="#9FB0D4"/>
+    <circle cx="396" cy="380" r="15" fill="#9FB0D4"/>
+  </g>
+
+  <!-- focus pointer: the window your attention is on -->
+  <g transform="translate(383 458) scale(3.4)">
+    <path d="M0 0 L0 62 L16.5 47 L27.5 72 L41 66 L30 41 L52 40 Z"
+          fill="url(#amber)" stroke="#8A4B00" stroke-opacity="0.25" stroke-width="2.4" stroke-linejoin="round"/>
+  </g>
+</g></svg>
