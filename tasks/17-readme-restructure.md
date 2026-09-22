@@ -1,6 +1,6 @@
 # Task 17 — Restructure README for users; move contributor material to CONTRIBUTING
 
-Status: in-review
+Status: pr-open
 Phase: 6
 Branch: chore/readme-restructure
 Base: main
