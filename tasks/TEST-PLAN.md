@@ -118,3 +118,26 @@ This is the first task that creates state surviving a reboot. `make clean` does 
 
 - **While you are still testing tasks 07–08** (which need the installed copy): switch the item **off** rather than removing it with `−`. An off switch leaves the status at `requiresApproval(2)`, which the gate deliberately never re-enables, so it stays off. A `−` removal resets the status to `notRegistered`/`notFound`, and the **next launch re-adds it**.
 - **At the final teardown**, do it in this order: `pkill -x ActiveBrowser` → `rm -rf /Applications/ActiveBrowser.app` → *then* remove the entry with `−`. Removing it while the app is still installed is what lets it come back.
+
+---
+
+## PR #9 — Task 07: Menu bar status item (`feature/menubar-status`, base `feature/launch-at-login`)
+
+**This is the first PR with a visible UI.** All 6 `ai` steps pass. It also fixes a defect task 06 handed over: `unregister()` leaves the login-item status at `.notRegistered`/`.notFound`, both of which task 06's launch gate registers on — so switching *Launch at Login* off would have been silently undone at the next launch. A persisted `launchAtLoginOptOut` flag now closes that; verified by the literal log line `ActiveBrowser: login item: skipped, user opted out (launchAtLoginOptOut=true)`.
+
+Steps 12–14 are recorded `not run — needs user step 9 / 10(b) / 11` and will be re-run against your results.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | Look at the right-hand side of the menu bar. | A small **globe** icon is present. **No Dock icon**, no window. Hovering it for a second shows a tooltip `Routing to: <a browser name>`. *If you cannot find the icon:* the menu bar may be full or hidden by the notch — check the overflow before calling this a failure. |
+| 2 | Click **Brave Browser**, then click the menu bar icon and read the menu. Close it, click **Arc**, then reopen the menu. | Top to bottom: greyed-out `Routing to: …`, greyed-out `Recent: …`, separator, `Set as Default Browser`, `Launch at Login` (tick/dash/blank), separator, `Quit ActiveBrowser`. There are **no** *Browsers* or *Fallback Browser* submenus yet — that is task 08, not a missing feature. First open reads `Routing to: Brave Browser`; after focusing Arc it reads `Routing to: Arc`. Values changing between two opens **without relaunching** is what proves the `menuWillOpen` rebuild runs. |
+| 3 | Menu bar icon → **Set as Default Browser**. macOS shows a confirmation dialog — accept it. **This changes your default browser away from Arc; the reset below restores it and is mandatory.** | System Settings → Desktop & Dock → *Default web browser* shows **ActiveBrowser**. Links clicked anywhere now route through it to your most recently focused browser. |
+| 4 | (a) Open the menu, note the `Launch at Login` state. (b) If **ticked**, click to switch it OFF, reopen the menu. (c) Quit ActiveBrowser from the menu, relaunch it (`open -a ActiveBrowser`), open the menu again. (d) Click `Launch at Login` to switch it back ON. | (a) Ticked ⇔ System Settings → General → Login Items lists ActiveBrowser, switch on. (b) The tick is **gone** and it disappears from / switches off in Login Items. (c) **After the relaunch it is still off** — this is the whole point of the task. (d) Clicking re-ticks it and it reappears. *Special case:* a **dash** instead of a tick means the login item is in `requiresApproval` (you switched it off in System Settings during task 06). Clicking then **opens System Settings** instead of toggling — designed behaviour; turn it on there and re-run (a)–(d). |
+| 5 | Menu bar icon → **Quit ActiveBrowser**. | The icon disappears immediately. No dialog, no crash report. (First task where the app can be quit without `pkill`.) Quitting does **not** remove the login item and does **not** undo step 3 — if ActiveBrowser is your default browser, macOS relaunches it on the next link click, which is correct. |
+
+**Reset after this block**
+- **Restore your default browser (mandatory if step 3 was run): System Settings → Desktop & Dock → *Default web browser* → `Arc`.** Accept the dialog.
+- A `launchAtLoginOptOut` value you wrote at step 4 is **your** choice and is left alone. The login item itself is reset by PR #8's block (switch **off** in System Settings while still testing; `−` only at the final teardown, after the app is deleted).
+- **Relaunch the agent after step 5:** `open -a ActiveBrowser` — task 08 starts from one running copy.
+- Close the tabs this run created (`https://example.com/t07*`) and relaunch any browser the steps quit.
+- **Leave `/Applications/ActiveBrowser.app` installed.** Do not run `make clean`, `make bundle`, `make run`, or delete the app — task 08 tests against this copy.
