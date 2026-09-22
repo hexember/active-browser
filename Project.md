@@ -130,7 +130,7 @@ One PR per task; a task never spans phases. Suggested split (the planner may spl
 5. Quit from the menu bar; `make clean`; `lsregister -dump | grep -c 'build/ActiveBrowser.app'` — expected: `0` (build copy unregistered).
 
 ### Phase 4 — Launch Services Integration
-- "Set as Default Browser" → `NSWorkspace.shared.setDefaultApplication(at: Bundle.main.bundleURL, toOpenURLsWithScheme: "http")` (macOS shows its own confirmation).
+- "Set as Default Browser" → `NSWorkspace.shared.setDefaultApplication(at: Bundle.main.bundleURL, toOpenURLsWithScheme: "http")` (macOS shows its own confirmation). The row reads *✓ Default Browser* (checked, disabled) when `urlForApplication(toOpen:)` resolves both `http` and `https` to this bundle id, evaluated in `menuWillOpen`.
 - "Launch at Login" → `SMAppService.mainApp.register()` / `.unregister()`; reflect `.status` in the menu.
 **Verify (Phase 4)** — this phase changes your system default browser; the reset step at the end restores it. Use the installed copy only.
 1. Menu bar → *Set as Default Browser* — expected: macOS asks to confirm; accept. System Settings → Desktop & Dock now shows ActiveBrowser as default.
@@ -153,7 +153,7 @@ Reset: System Settings → Desktop & Dock → *Default web browser* → pick you
   Browsers            ▸  ☑ Brave  ☑ Chrome  ☑ Safari  ☐ Zoom …   (toggle inclusion)
   Fallback Browser    ▸  ● Brave  ○ Chrome  ○ Safari           (radio, included only)
   ──────────
-  Set as Default Browser
+  Set as Default Browser   (or "✓ Default Browser", disabled, when already default)
   ☑ Launch at Login
   ──────────
   Quit
