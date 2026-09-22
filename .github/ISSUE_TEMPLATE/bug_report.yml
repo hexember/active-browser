@@ -1,0 +1,78 @@
+name: Bug report
+description: Something doesn't work the way it should
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. **Please run the diagnostics below first** — the answers
+        usually identify the problem immediately, and the first one in particular
+        distinguishes "the app isn't running" from "the app is running but misbehaving",
+        which are completely different bugs.
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Paste the output of this block.
+      render: shell
+      value: |
+        # Paste the output of each line:
+        sw_vers -productVersion
+        uname -m
+        pgrep -x ActiveBrowser | wc -l
+        ls -d /Applications/ActiveBrowser.app
+        defaults read com.local.activebrowser
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: How did you install it?
+      options:
+        - curl one-liner
+        - make install from source
+        - other / not sure
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Release tag, or the commit if you built from source (`git rev-parse --short HEAD`).
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Focus Brave
+        2. Switch to Terminal
+        3. Run `open https://example.com`
+        4. It opened in Safari instead of Brave
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: App log (optional but very useful)
+      description: |
+        `NSLog` output never reaches Console.app, so it has to be captured from stderr:
+      render: shell
+      value: |
+        pkill -x ActiveBrowser
+        /Applications/ActiveBrowser.app/Contents/MacOS/ActiveBrowser > /tmp/ab.log 2>&1 &
+        sleep 4; kill %1; cat /tmp/ab.log
+        open -a ActiveBrowser

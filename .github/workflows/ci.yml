@@ -1,0 +1,141 @@
+# ci -- build and verify on every push and pull request.
+#
+# This exists because two merges silently dropped a hunk from the middle of a
+# function while keeping the surrounding code. Both compiled cleanly, both passed
+# every branch-level check, and both shipped to main unnoticed:
+#
+#   * the `release:` recipe vanished while `release` stayed on .PHONY, so
+#     `make release` printed "Nothing to be done" and published nothing;
+#   * the three statements that construct MenuBarManager vanished from
+#     applicationDidFinishLaunching, so the app ran with no menu bar at all.
+#
+# A green build proves neither. The "wiring" job below asserts that the code which
+# is easy to delete and impossible to miss at runtime is actually still called.
+
+name: ci
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain diagnostics
+        run: |
+          sw_vers
+          uname -m
+          xcode-select -p
+          swift --version
+
+      - name: Build (debug)
+        run: swift build 2>&1 | tee /tmp/debug.log
+
+      - name: Build (release)
+        run: swift build -c release 2>&1 | tee /tmp/release.log
+
+      - name: No errors, no project-source warnings
+        run: |
+          # A CI runner has a full Xcode, so the CommandLineTools "search path"
+          # warnings seen on a developer machine do not occur here and must not be
+          # filtered out -- that would hide real warnings.
+          for log in /tmp/debug.log /tmp/release.log; do
+            if grep -q "error:" "$log"; then
+              echo "::error::compile errors in $log"; grep "error:" "$log"; exit 1
+            fi
+            if grep -q "warning:" "$log"; then
+              echo "::error::compile warnings in $log"; grep "warning:" "$log"; exit 1
+            fi
+          done
+          echo "both configurations clean"
+
+      - name: Bundle assembles and signs
+        run: |
+          make bundle
+          plutil -lint build/ActiveBrowser.app/Contents/Info.plist
+          codesign --verify --strict build/ActiveBrowser.app
+          test "$(plutil -extract LSUIElement raw -o - build/ActiveBrowser.app/Contents/Info.plist)" = "true"
+          test "$(plutil -extract CFBundleExecutable raw -o - build/ActiveBrowser.app/Contents/Info.plist)" = "ActiveBrowser"
+          plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes json -o - \
+            build/ActiveBrowser.app/Contents/Info.plist | grep -q '"http"'
+          plutil -extract CFBundleURLTypes.0.CFBundleURLSchemes json -o - \
+            build/ActiveBrowser.app/Contents/Info.plist | grep -q '"https"'
+
+      - name: make release produces verifiable artefacts
+        run: |
+          make release
+          test -f build/ActiveBrowser.app.zip
+          test -f build/SHA256SUMS
+          [ "$(wc -l < build/SHA256SUMS)" -eq 1 ]
+          grep -qE '^[0-9a-f]{64}  ActiveBrowser\.app\.zip$' build/SHA256SUMS
+          ( cd build && shasum -a 256 -c SHA256SUMS )
+          # The recipe deletes the build copy after zipping it, so that no later
+          # Launch Services scan can register a second bundle under the same id.
+          test ! -e build/ActiveBrowser.app
+
+  wiring:
+    name: wiring (regression guards)
+    runs-on: macos-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: MenuBarManager is actually constructed
+        run: |
+          # Regression guard for #17. MenuBarManager.swift can be present and compile
+          # perfectly while nothing ever instantiates it -- the app then runs with no
+          # menu bar, and only a human looking at the screen would notice.
+          grep -q 'menuBar = MenuBarManager(' Sources/ActiveBrowser/App/AppDelegate.swift \
+            || { echo "::error::MenuBarManager is never constructed in AppDelegate"; exit 1; }
+          grep -q 'registerLoginItemIfInstalled()' Sources/ActiveBrowser/App/AppDelegate.swift \
+            || { echo "::error::registerLoginItemIfInstalled is never called"; exit 1; }
+          grep -q 'onFocusChange = {' Sources/ActiveBrowser/App/AppDelegate.swift \
+            || { echo "::error::focus-change callback is never wired"; exit 1; }
+
+      - name: Every make target declared phony has a recipe
+        run: |
+          # Regression guard for #16. `release` stayed on .PHONY after its recipe was
+          # dropped, so make reported "Nothing to be done" instead of failing.
+          # tr-split rather than relying on unquoted word splitting, so this behaves
+          # identically under any shell.
+          grep '^\.PHONY:' Makefile | cut -d: -f2- | tr ' ' '\n' | grep -v '^$' \
+          | while read -r t; do
+              grep -qE "^${t}:" Makefile \
+                || { echo "::error::target '$t' is on .PHONY but has no recipe"; exit 1; }
+              echo "  ok: $t"
+            done
+
+      - name: Release asset names match what install.sh downloads
+        run: |
+          # These basenames are a published contract. Renaming either one silently
+          # breaks the curl installer for every user.
+          for name in ActiveBrowser.app.zip SHA256SUMS; do
+            grep -q "$name" .github/workflows/release.yml \
+              || { echo "::error::release.yml no longer references $name"; exit 1; }
+            grep -q "$name" install.sh \
+              || { echo "::error::install.sh no longer references $name"; exit 1; }
+          done
+
+      - name: install.sh parses and is executable
+        run: |
+          bash -n install.sh
+          sh -n install.sh
+          test -x install.sh || { echo "::error::install.sh is not executable"; exit 1; }

@@ -1,5 +1,10 @@
 # ActiveBrowser
 
+[![ci](https://github.com/tajpuriya27/active-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/tajpuriya27/active-browser/actions/workflows/ci.yml)
+[![release](https://img.shields.io/github/v/release/tajpuriya27/active-browser?sort=semver)](https://github.com/tajpuriya27/active-browser/releases/latest)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![platform: macOS 13+](https://img.shields.io/badge/platform-macOS%2013%2B-lightgrey.svg)](#install)
+
 **A macOS menu bar agent that opens every link in the browser you were just using.**
 
 No rules to write. No picker to click. You set it as your default browser once, and from then on a link clicked anywhere — Slack, Mail, Notes, Terminal — opens in whichever browser you most recently had in front of you.
@@ -182,6 +187,45 @@ git tag v0.1.0 && git push origin v0.1.0
 Those two asset names are a published contract — `install.sh` builds its download URLs from them, so renaming either breaks the installer for everyone.
 
 ---
+
+## Repository layout
+
+```
+Sources/          the app
+Support/          Info.plist (the bundle manifest)
+install.sh        the curl installer
+Makefile          build, bundle, install, release
+docs/             background notes
+```
+
+Three directories are **history, not instructions**: `tasks/`, `Project.md`, and
+`.claude/`. This project was built by AI agents working through a task-per-PR workflow, and
+those files are that workflow's records — the specs, the review notes, and the agent
+definitions. They're kept because the reasoning in them is often useful (several non-obvious
+macOS behaviours are documented there and nowhere else), but **you do not need to read or
+follow any of it to contribute**. `CONTRIBUTING.md` is the only process document that
+applies to you.
+
+One caveat if you do read them: `Project.md` is the original specification and the shipped
+code deliberately departs from it in three places where the spec turned out to be wrong —
+the `@main` entry point, the `install:` target ordering, and the `SMAppService` status gate.
+The code is correct in all three. Don't "restore" it to match the document.
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to build, the
+three macOS gotchas that will otherwise cost you an hour, and the design constraints.
+
+Please also read the [Code of Conduct](CODE_OF_CONDUCT.md). For security issues, see
+[SECURITY.md](SECURITY.md) — report privately, not in a public issue.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+[MIT](LICENSE).
 
 ## Known limitations
 
