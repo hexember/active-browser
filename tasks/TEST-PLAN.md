@@ -296,6 +296,32 @@ https://github.com/hexember/active-browser/pull/24
 
 ---
 
+## PR #28 — Task 15: landing page on GitHub Pages (`feature/landing-page`, base `main`)
+
+**Preconditions**
+- **Do step 1 BEFORE merging.** Otherwise the first `pages` run fails and you have to re-run it from the Actions tab.
+- **Local preview** for steps 2–7, run from the repo root. It is self-contained and mirrors the deploy:
+  `D=$(mktemp -d) && mkdir $D/active-browser && cp -R site/. $D/active-browser/ && cp assets/icon.svg $D/active-browser/icon.svg && cp assets/icon-1024.png $D/active-browser/icon.png && PORT=$(python3 -c 'import socket;s=socket.socket();s.bind(("",0));print(s.getsockname()[1])') && echo "Preview: http://127.0.0.1:$PORT/active-browser/" && python3 -m http.server $PORT --bind 127.0.0.1 --directory $D`
+  Open the printed URL. Stop the server with Ctrl-C.
+- Step 8 needs the PR merged and the `pages` workflow green.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | **Before merge:** GitHub → `hexember/active-browser` → Settings → Pages → Build and deployment → Source: **GitHub Actions**. Leave *Custom domain* empty | Pages shows Source "GitHub Actions" and no custom domain. (If a previous attempt set `activebrowser.app` here, clear it.) |
+| 2 | Start the local preview (see Preconditions) and open the printed `http://127.0.0.1:<port>/active-browser/` in Safari, with macOS in **Light** appearance | The icon shows, and the hero shows the raw.githubusercontent one-liner. Why, How it works, Install, Uninstall and FAQ read correctly. The nav links jump to each section. There is no "unreachable"/fallback install block |
+| 3 | System Settings → Appearance → **Dark**, then reload | Dark background and light text. Links are still clearly visible, and the code blocks are readable |
+| 4 | Safari → Develop → Enter Responsive Design Mode → 360 px wide | No horizontal page scroll. The long one-liner scrolls inside its own box. The nav wraps without overlapping, and the icon and headings are not clipped |
+| 5 | Click **Copy**, then paste into Terminal (do not press Return) | The status reads "Copied". The pasted text is exactly `curl -fsSL https://raw.githubusercontent.com/hexember/active-browser/main/install.sh \| sh` |
+| 6 | Safari → Develop → Disable JavaScript, then reload | No Copy button is shown. All content, the nav anchors and the FAQ `<details>` still work. Re-enable JavaScript afterwards |
+| 7 | Reload and press Tab repeatedly | The first Tab reveals a "Skip to content" link. Every link, the Copy button and each FAQ summary shows a visible focus ring |
+| 8 | **After merge**, once the `pages` workflow is green (Actions tab): run Project.md Phase 6 Verify 8, `for p in "" style.css copy.js icon.svg icon.png; do curl -fsS -o /dev/null -w "%{http_code} /$p\n" https://hexember.github.io/active-browser/$p; done; curl -s -o /dev/null -w "%{http_code} install.sh\n" https://hexember.github.io/active-browser/install.sh`, then open https://hexember.github.io/active-browser/ | `200` on the five page lines, then `404 install.sh`. The live page matches the preview, the tab shows the ActiveBrowser icon, and the Copy button works (the page is HTTPS) |
+
+**Reset after this block**
+- Stop the preview (Ctrl-C) and `rm -rf "$D"`. Set Appearance back to your usual setting, re-enable JavaScript in Safari, and exit Responsive Design Mode.
+- Pages stays enabled; that is the intended end state.
+
+---
+
 # Final teardown — run this only when you are finished with everything above
 
 Order matters; doing it out of order lets the login item come back.
