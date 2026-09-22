@@ -1,10 +1,10 @@
 # Task 14 — Rename repo owner to hexember and serve install.sh from activebrowser.app
 
-Status: in-review            <planned | in-progress | in-review | pr-open | done | blocked: reason>
+Status: pr-open            <planned | in-progress | in-review | pr-open | done | blocked: reason>
 Phase: 6
 Branch: chore/hexember-domain-install
 Base: main
-PR: <url, filled by git-agent>
+PR: https://github.com/hexember/active-browser/pull/25
 Created: 2026-09-23
 
 ## Goal
