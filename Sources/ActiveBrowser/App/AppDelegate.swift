@@ -36,6 +36,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         bootstrapIfNeeded()
+        // The status item must not be created before `NSApplication` has finished
+        // launching, which is why `menuBar` is a `var` assigned here rather than a
+        // `let` built in `init()`. It is *stored* because `NSMenuItem.target` and
+        // `NSMenu.delegate` are both weak: an unretained manager would still draw a
+        // menu, but every click would silently do nothing.
+        menuBar = MenuBarManager(registry: registry, settings: settings, stack: stack, dispatcher: dispatcher)
+        // `[weak self]` is mandatory: this delegate owns `focusObserver` non-optionally,
+        // so a strong capture would close an
+        // AppDelegate -> FocusObserver -> closure -> AppDelegate retain cycle.
+        focusObserver.onFocusChange = { [weak self] in self?.menuBar?.refresh() }
+        registerLoginItemIfInstalled()
     }
 
     /// Called by Launch Services when ActiveBrowser is the default handler for the scheme.
