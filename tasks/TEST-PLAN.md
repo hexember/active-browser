@@ -185,7 +185,7 @@ Steps 12–14 are recorded `not run — needs user step 9 / 10(b) / 11` and will
 | 1 | Look at the menu bar, click the ActiveBrowser icon, and read the menu. Then open System Settings → General → **Login Items & Extensions**. | The menu bar item is present and the menu shows *Routing to:*, *Recent:*, **Browsers ▸**, **Fallback Browser ▸**, *Set as Default Browser*, a **ticked** *Launch at Login*, and *Quit*. Login Items lists **ActiveBrowser exactly once** — not twice, not zero times. A duplicate or missing entry would mean the delete-and-replace disturbed the login item. |
 | 2 | System Settings → Desktop & Dock → **Default web browser** — open the dropdown and count the ActiveBrowser entries. **Do not change the selection** (leave it on Arc unless you are also running PR #7's steps). | **ActiveBrowser appears exactly once.** Two identical rows would mean `make release` left a second registered bundle in the repo's `build/` directory — the defect task 04 fixed and this task had to avoid re-introducing. |
 
-> **Not testable in this PR:** the real one-liner `curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh` needs a **published GitHub Release with both assets** and a **public repository** — neither exists until task 10's workflow runs on a pushed tag, and the repo is currently private. What this PR proves is that every step *after* the download works end to end on a real zip. The one-liner is PR #12's step.
+> **Not testable in this PR:** the real one-liner `curl -fsSL https://raw.githubusercontent.com/hexember/active-browser/main/install.sh | sh` needs a **published GitHub Release with both assets** and a **public repository** — neither exists until task 10's workflow runs on a pushed tag, and the repo is currently private. What this PR proves is that every step *after* the download works end to end on a real zip. The one-liner is PR #12's step.
 
 **Reset after this block**
 - **Nothing to undo.** These steps only look; they change no state.
@@ -204,8 +204,8 @@ Steps 12–14 are recorded `not run — needs user step 9 / 10(b) / 11` and will
 |---|---|---|
 | 1 | **Merge the whole stack first, bottom-up: #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10 → #11 → #12.** Then repo → **Actions**, and locally `git fetch && git show main:.github/workflows/release.yml \| head -5` | `main` contains the workflow, and Actions lists **release** with "This workflow has no runs yet". Until this, a pushed tag does nothing. |
 | 2 | **Tag and publish.** `git checkout main && git pull && git tag v0.1.0 && git push origin v0.1.0`, then watch Actions → **release**. | The run starts within seconds and goes green in ~2–5 min. The `v0.1.0` Release page shows both assets. |
-| 3 | **Verify the published bytes.** `mkdir -p /tmp/ab10-rel && cd /tmp/ab10-rel && GH_TOKEN=$(gh auth token --user tajpuriya27) gh release download v0.1.0 --repo tajpuriya27/active-browser && ls -l && shasum -a 256 -c SHA256SUMS` | Exactly `ActiveBrowser.app.zip` and `SHA256SUMS`; the check prints `ActiveBrowser.app.zip: OK`. **This is the last checkpoint that works while the repo is private.** |
-| 4 | **The real one-liner.** *Also requires making the repo public* (Settings → General → Danger Zone → Change visibility). `curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh \| sh` | Prints its `==>` progress lines, ends with the "Set as Default Browser" hint, menu bar item appears. |
+| 3 | **Verify the published bytes.** `mkdir -p /tmp/ab10-rel && cd /tmp/ab10-rel && GH_TOKEN=$(gh auth token --user hexember) gh release download v0.1.0 --repo hexember/active-browser && ls -l && shasum -a 256 -c SHA256SUMS` | Exactly `ActiveBrowser.app.zip` and `SHA256SUMS`; the check prints `ActiveBrowser.app.zip: OK`. **This is the last checkpoint that works while the repo is private.** |
+| 4 | **The real one-liner.** *Also requires making the repo public* (Settings → General → Danger Zone → Change visibility). `curl -fsSL https://raw.githubusercontent.com/hexember/active-browser/main/install.sh \| sh` | Prints its `==>` progress lines, ends with the "Set as Default Browser" hint, menu bar item appears. |
 | 5 | `xattr -l /Applications/ActiveBrowser.app` | **No `com.apple.quarantine`.** (`com.apple.provenance` is a different, expected attribute.) This is what lets an ad-hoc-signed bundle install without Gatekeeper prompts. |
 | 6 | With the app running, re-run the same one-liner; then `pgrep -x ActiveBrowser` and `codesign --verify --strict /Applications/ActiveBrowser.app; echo verify=$?` | Exits `0`, replaces the running app, exactly one process, `verify=0`. |
 | 7 | Click Brave → Terminal → `open https://example.com`; click Arc → Terminal → `open https://example.com`. *Requires ActiveBrowser set as default (PR #7's step).* | First link opens in **Brave**, second in **Arc**. |
@@ -215,7 +215,7 @@ Steps 12–14 are recorded `not run — needs user step 9 / 10(b) / 11` and will
 - **Intel install of an arm64 release** — no Intel Mac available. The failure mode is pinned anyway: `install.sh` refuses with `this release is built for arm64, this Mac is x86_64` *before* touching `/Applications`, exercised for real with a stubbed `uname` in PR #11.
 
 **Reset after this block**
-- If you do not want to keep the release: `GH_TOKEN=$(gh auth token --user tajpuriya27) gh release delete v0.1.0 --yes` and `git push --delete origin v0.1.0`.
+- If you do not want to keep the release: `GH_TOKEN=$(gh auth token --user hexember) gh release delete v0.1.0 --yes` and `git push --delete origin v0.1.0`.
 - If you made the repo public and want it private again, change it back in Settings.
 - After step 4, `/Applications/ActiveBrowser.app` is the curl-installed copy — that is the intended end state.
 

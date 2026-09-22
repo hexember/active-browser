@@ -9,7 +9,7 @@
 #
 # Usage:
 #
-#   curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh
+#   curl -fsSL https://raw.githubusercontent.com/hexember/active-browser/main/install.sh | sh
 #
 # That one-liner is the supported, user-facing way to run this script.
 #
@@ -37,7 +37,7 @@ set -euo pipefail
 APP_NAME="ActiveBrowser"
 BUNDLE_ID="com.local.activebrowser"
 DEST="/Applications/${APP_NAME}.app"
-REPO="tajpuriya27/active-browser"
+REPO="hexember/active-browser"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 
 fail() {

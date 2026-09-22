@@ -125,7 +125,7 @@ jobs:
           ## Install
 
           ```sh
-          curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh
+          curl -fsSL https://raw.githubusercontent.com/hexember/active-browser/main/install.sh | sh
           ```
 
           ## Requirements

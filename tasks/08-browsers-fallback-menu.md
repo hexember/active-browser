@@ -4,7 +4,7 @@ Status: pr-open
 Phase: 5
 Branch: feature/browsers-fallback-menu
 Base: feature/menubar-status
-PR: https://github.com/tajpuriya27/active-browser/pull/10
+PR: https://github.com/hexember/active-browser/pull/10
 Created: 2026-09-22
 
 ## Goal
