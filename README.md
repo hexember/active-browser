@@ -2,7 +2,7 @@
 
 [![ci](https://github.com/hexember/active-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/hexember/active-browser/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/hexember/active-browser?sort=semver)](https://github.com/hexember/active-browser/releases/latest)
-[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/hexember/active-browser/blob/main/LICENSE)
 [![platform: macOS 13+](https://img.shields.io/badge/platform-macOS%2013%2B-lightgrey.svg)](#install)
 
 **A macOS menu bar agent that opens every link in the browser you were just using.**
@@ -15,6 +15,8 @@ Testing in Brave     →  click a link in Slack  →  opens in Brave
 ```
 
 That's the whole idea. ActiveBrowser never becomes the thing that displays a page; it receives the URL, decides which real browser should get it, hands it over, and gets out of the way.
+
+**Contents:** [Why](#why-this-exists) · [Install](#install) · [Using it](#using-it) · [Privacy](#privacy) · [Limitations](#known-limitations) · [Uninstall](#uninstall) · [Contributing](#contributing) · [Source on GitHub](https://github.com/hexember/active-browser)
 
 ---
 
@@ -152,7 +154,7 @@ Order matters. Reset your default browser first, so a link clicked mid-uninstall
 
 ## Contributing
 
-Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers building, the macOS gotchas that will otherwise cost you an hour, the architecture, the design constraints, testing, and releasing.
+Source code, issues and releases live at [github.com/hexember/active-browser](https://github.com/hexember/active-browser). Contributions are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers building, the macOS gotchas that will otherwise cost you an hour, the architecture, the design constraints, testing, and releasing.
 
 Please also read the [Code of Conduct](CODE_OF_CONDUCT.md). For security issues, see
 [SECURITY.md](SECURITY.md) — report privately, not in a public issue.
@@ -163,4 +165,4 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-[MIT](LICENSE).
+[MIT](https://github.com/hexember/active-browser/blob/main/LICENSE).
