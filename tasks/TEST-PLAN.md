@@ -33,3 +33,18 @@ First PR with a runnable `.app`. All 15 `ai` steps ran green before the PR opene
 - `make clean` — unregisters the build copy from Launch Services, then removes `.build/` and `build/`.
 - `defaults delete com.local.activebrowser` — so later tasks still see a genuine first launch.
 - **Default browser: nothing to restore.** This task never changes it. Do not open System Settings for this PR.
+
+---
+
+## PR #6 — Task 04: make install (`feature/make-install`, base `feature/bundle-makefile`)
+
+All 15 `ai` steps pass. A duplicate-Launch-Services-registration defect was found and **fixed** in this PR (two earlier attempts failed; see `tasks/04-make-install.md` Failures for the measurements). ActiveBrowser now appears exactly **once** in the *Default web browser* list.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | Open System Settings → Desktop & Dock → scroll to *Default web browser* and open the dropdown. **Look only — do NOT select ActiveBrowser.** Selecting it is task 05. | **ActiveBrowser is listed exactly once**, and your current default is still **Arc**. Phase 3 Verify step 4. Two ActiveBrowser rows would mean this PR's fix regressed. Close the dropdown with Esc. |
+
+**Reset after this block**
+- **Do NOT run the teardown between tasks.** Tasks 05-08 all need the installed copy in `/Applications`. Run the teardown once, at the very end of the whole stack (last block in this file).
+- **Default browser: nothing to restore.** This task never changes it; steps 1 and 14 assert Arc before and after.
+- Note: `make install` now deletes `build/ActiveBrowser.app` as part of the fix. `make bundle` recreates it if you want it back.
