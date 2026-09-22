@@ -29,6 +29,27 @@
 
          ActiveBrowser never renders HTML. It hands every URL to a real browser, so being
          listed as a viewer is a registration formality, not a claim about capability. -->
+    <!-- Declares ActiveBrowser a web browser for Handoff. Every real browser on this
+         machine declares exactly this, and it is one of the signals macOS uses to decide
+         which applications belong in the default-browser picker. ActiveBrowser never
+         continues a browsing activity itself -- it forwards to a real browser -- so this
+         is a registration signal, not a capability claim. -->
+    <key>NSUserActivityTypes</key>
+    <array>
+        <string>NSUserActivityTypeBrowsingWeb</string>
+    </array>
+    <!-- Standard application boilerplate that a SwiftPM-assembled bundle does not get for
+         free. Their absence is one more way this bundle looked unlike a real application. -->
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleSupportedPlatforms</key>
+    <array>
+        <string>MacOSX</string>
+    </array>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>
