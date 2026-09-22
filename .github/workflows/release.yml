@@ -1,0 +1,178 @@
+# release -- build ActiveBrowser on a macOS runner and publish a GitHub Release.
+#
+# Triggered by pushing a v* tag, and by nothing else.
+#
+# THE WORKFLOW FILE MUST ALREADY EXIST ON THE COMMIT THE TAG POINTS AT. GitHub
+# reads a tag-triggered workflow from the tagged commit's tree, so a tag pushed
+# onto a commit that predates this file's arrival on the default branch
+# triggers nothing at all: the Actions tab stays empty, which looks exactly
+# like a broken workflow. Merge first, then tag.
+#
+# The two published assets are named ActiveBrowser.app.zip and SHA256SUMS
+# because install.sh builds its download URLs from a tag plus those two fixed
+# basenames, and nothing at runtime reconciles the two files. Renaming an asset
+# here -- a versioned name, a different suffix, or a relabelled upload argument
+# -- leaves this workflow green, leaves the Release page looking healthy, and
+# gives every user of the one-liner a bare 404. Change one file and you change
+# the other, in the same commit.
+#
+# Recovery after a partial failure is deliberately manual. There is no
+# overwrite flag here, so a second publish for a tag that already has a release
+# fails loudly instead of silently replacing published bytes whose checksum
+# users may already have recorded. To retry: delete the release with
+# `gh release delete <tag> --yes`, then re-run the failed run from the Actions
+# tab.
+#
+# v1 limitation: 'v*' also matches a pre-release tag such as v0.2.0-beta1, and
+# every match is published as a full release -- which makes it the "latest"
+# release install.sh resolves. Publishing a pre-release as such needs an
+# explicit decision, and a flag, added here first.
+#
+# No credential beyond the automatic GITHUB_TOKEN is used or needed: the bundle
+# is ad-hoc signed, which requires no identity and no keychain, and v1 is not
+# notarized.
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# gh needs contents: write to publish a release. Declaring the block explicitly
+# matters twice: a repository or org whose token default is read-only would
+# otherwise fail with an opaque HTTP 403, and declaring any permissions block
+# sets every scope not listed to none -- the least-privilege posture for a job
+# that also runs arbitrary build code.
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    # The default job timeout is 360 minutes -- six hours of a macOS runner,
+    # billed at 10x -- for a job that should finish in two to four.
+    timeout-minutes: 20
+    defaults:
+      run:
+        # Explicit `shell: bash` selects `bash --noprofile --norc -eo pipefail`,
+        # i.e. it adds pipefail on top of the implicit default's -e. The verify
+        # step below relies on that.
+        shell: bash
+    steps:
+      # Pinned to the major tag: not a commit SHA, and never an unpinned or
+      # @main reference. The only action used is GitHub's own, the token is
+      # scoped to contents: write on this repository alone, and a major tag
+      # keeps picking up runner and Node compatibility fixes that a frozen SHA
+      # would not. The day a third-party action enters this file, that action
+      # is pinned by SHA and this one follows.
+      - name: Check out the tagged commit
+        uses: actions/checkout@v4
+
+      # One second of log, and it converts the most likely CI failure -- an
+      # image whose default Xcode predates Swift 6, against a manifest that
+      # declares // swift-tools-version:6.0 -- from a mystifying SwiftPM error
+      # into line one of the log. Do not pin a toolchain here pre-emptively:
+      # image-specific paths rot, and a version nobody has observed failing is
+      # a guess. Swift < 6.0 in this output is a re-plan, not an ad-hoc patch.
+      - name: Toolchain diagnostics
+        run: |
+          sw_vers -productVersion
+          uname -m
+          xcode-select -p
+          swift --version
+          gh --version
+
+      # Exactly the recipe a maintainer runs locally, so there is exactly one
+      # way to cut a release.
+      - name: Build the release artefacts
+        run: make release
+
+      # install.sh cannot verify a SHA256SUMS that has more than one line or a
+      # path-prefixed filename: macOS ships Perl's shasum, which has no
+      # --ignore-missing. Nothing else in the pipeline would catch a regression
+      # there -- the release would publish green and fail only on a stranger's
+      # machine. The anchored grep asserts both halves at once: exactly one
+      # entry, and a bare filename.
+      - name: Verify the artefacts and write the release notes
+        run: |
+          test -f build/ActiveBrowser.app.zip
+          test -f build/SHA256SUMS
+          [ "$(wc -l < build/SHA256SUMS)" -eq 1 ]
+          grep -qE '^[0-9a-f]{64}  ActiveBrowser\.app\.zip$' build/SHA256SUMS
+          ( cd build && shasum -a 256 -c SHA256SUMS )
+
+          # Canary: the build copy of the bundle is deleted by the recipe after
+          # it has been zipped, so that no later scan can register a second
+          # copy of the app. Harmless on an ephemeral runner, meaningful as a
+          # signal that the line is still there.
+          test ! -e build/ActiveBrowser.app
+
+          # Derived, never hardcoded: macos-latest already migrated Intel ->
+          # Apple silicon once and can move again, and a hardcoded architecture
+          # in the notes would quietly become a lie. The release binary is not
+          # part of the artefacts and survives the recipe.
+          arch="$(lipo -archs .build/release/ActiveBrowser 2>/dev/null || echo unknown)"
+
+          # Written under RUNNER_TEMP, never into the checkout, so the tree
+          # stays clean.
+          notes="$RUNNER_TEMP/notes.md"
+
+          # Quoted heredoc, deliberately: the prose below is full of markdown
+          # code spans, and in an unquoted heredoc every backticked span would
+          # be a command substitution instead of text. The two interpolated
+          # values are appended separately.
+          cat > "$notes" <<'EOF'
+          ## Install
+
+          ```sh
+          curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh
+          ```
+
+          ## Requirements
+
+          - macOS 13 or later.
+          EOF
+          printf -- '- Runs on `%s` Macs only. `install.sh` checks the architecture before it touches /Applications and refuses to install on any other one, so an incompatible Mac is told plainly rather than left holding an app it cannot launch.\n' "$arch" >> "$notes"
+          cat >> "$notes" <<'EOF'
+
+          ## Checksum
+
+          ```
+          EOF
+          cat build/SHA256SUMS >> "$notes"
+          cat >> "$notes" <<'EOF'
+          ```
+
+          ## Signing
+
+          The bundle is ad-hoc signed, and `curl` does not set the
+          `com.apple.quarantine` attribute -- which is why the install command
+          above works without notarization and without a Gatekeeper prompt. A
+          browser download or a Homebrew Cask would quarantine the same bytes;
+          neither is a supported install path for v1.
+          EOF
+
+      # The upload arguments are a public API: gh names each asset after the
+      # basename of the path it is given, and those basenames are what
+      # install.sh requests. Upload them from build/, under the names the
+      # recipe wrote, with no label suffix and no version in the name.
+      #
+      # GH_TOKEN is set on this step only, so the build steps above never see a
+      # credential. GITHUB_REF_NAME is the tag, guaranteed by the tag-only
+      # trigger, and is read from the environment rather than interpolated into
+      # the script body -- interpolation into a shell string is the standard
+      # script-injection shape, and the env form costs nothing.
+      #
+      # --verify-tag makes gh refuse to invent a tag that does not already
+      # exist on the remote, turning a future misconfiguration into a failure
+      # instead of a phantom tag.
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --verify-tag \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            build/ActiveBrowser.app.zip \
+            build/SHA256SUMS

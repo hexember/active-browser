@@ -169,3 +169,65 @@ Steps 12–14 are recorded `not run — needs user step 9 / 10(b) / 11` and will
   ```
 - Close the `https://example.com/t08*` tabs and relaunch any browser step 4 had you quit (they restore their sessions).
 - **Leave `/Applications/ActiveBrowser.app` installed and running.** Do not run `make clean` and do not delete the defaults domain — the full teardown is the last block in this file.
+
+---
+
+## PR #11 — Task 09: `make release` + `install.sh` (`feature/release-install-sh`, base `feature/browsers-fallback-menu`)
+
+**No Swift changed.** All 11 `ai` steps pass, including the two that had to keep task 04's duplicate-registration fix closed: exactly **one** Launch Services record at T+12 s *and* T+60 s, before and after two consecutive `install.sh` runs. `make release` deletes `build/ActiveBrowser.app` after zipping, because the scanner registers a freshly built bundle ~1–3 s *after* the ~1 s target returns — `lsregister -u` alone cannot win that race.
+
+`install.sh` **stages, validates, then replaces**: it extracts to a temp dir and checks bundle id, architecture and checksum before it kills the running app or deletes `/Applications/ActiveBrowser.app`. All three negative tests (old macOS, missing zip, one-byte-corrupted zip that still extracts) refuse with the installed app's pid and mtime unchanged.
+
+**Your `/Applications/ActiveBrowser.app` was reinstalled by `install.sh` during these steps — that was the test.** It is running, adhoc-signed, quarantine-free, and your settings, login item and default-browser binding were all verified untouched.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | Look at the menu bar, click the ActiveBrowser icon, and read the menu. Then open System Settings → General → **Login Items & Extensions**. | The menu bar item is present and the menu shows *Routing to:*, *Recent:*, **Browsers ▸**, **Fallback Browser ▸**, *Set as Default Browser*, a **ticked** *Launch at Login*, and *Quit*. Login Items lists **ActiveBrowser exactly once** — not twice, not zero times. A duplicate or missing entry would mean the delete-and-replace disturbed the login item. |
+| 2 | System Settings → Desktop & Dock → **Default web browser** — open the dropdown and count the ActiveBrowser entries. **Do not change the selection** (leave it on Arc unless you are also running PR #7's steps). | **ActiveBrowser appears exactly once.** Two identical rows would mean `make release` left a second registered bundle in the repo's `build/` directory — the defect task 04 fixed and this task had to avoid re-introducing. |
+
+> **Not testable in this PR:** the real one-liner `curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh | sh` needs a **published GitHub Release with both assets** and a **public repository** — neither exists until task 10's workflow runs on a pushed tag, and the repo is currently private. What this PR proves is that every step *after* the download works end to end on a real zip. The one-liner is PR #12's step.
+
+**Reset after this block**
+- **Nothing to undo.** These steps only look; they change no state.
+- `build/ActiveBrowser.app.zip` and `build/SHA256SUMS` are left on disk deliberately — task 10 uses them. They are **not** committed. `make clean` removes them when you no longer want them, but do not run it while testing PR #12.
+- **Leave `/Applications/ActiveBrowser.app` installed and running.**
+
+---
+
+## PR #12 — Task 10: `.github/workflows/release.yml` (`feature/release-workflow`, base `feature/release-install-sh`)
+
+**This workflow has never run.** The repo is private and every earlier PR is unmerged, so the file is not on `main` and no tag exists. All 10 `ai` steps pass, but they are static and local by necessity: YAML structure, the three-way asset-name agreement between `release.yml`, `install.sh` and the `Makefile`, the workflow's own verify block run verbatim against real artefacts, and the duplicate-registration invariant at T+12 s / T+45 s.
+
+**Do these in order — each row depends on the one before it.**
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | **Merge the whole stack first, bottom-up: #3 → #4 → #5 → #6 → #7 → #8 → #9 → #10 → #11 → #12.** Then repo → **Actions**, and locally `git fetch && git show main:.github/workflows/release.yml \| head -5` | `main` contains the workflow, and Actions lists **release** with "This workflow has no runs yet". Until this, a pushed tag does nothing. |
+| 2 | **Tag and publish.** `git checkout main && git pull && git tag v0.1.0 && git push origin v0.1.0`, then watch Actions → **release**. | The run starts within seconds and goes green in ~2–5 min. The `v0.1.0` Release page shows both assets. |
+| 3 | **Verify the published bytes.** `mkdir -p /tmp/ab10-rel && cd /tmp/ab10-rel && GH_TOKEN=$(gh auth token --user tajpuriya27) gh release download v0.1.0 --repo tajpuriya27/active-browser && ls -l && shasum -a 256 -c SHA256SUMS` | Exactly `ActiveBrowser.app.zip` and `SHA256SUMS`; the check prints `ActiveBrowser.app.zip: OK`. **This is the last checkpoint that works while the repo is private.** |
+| 4 | **The real one-liner.** *Also requires making the repo public* (Settings → General → Danger Zone → Change visibility). `curl -fsSL https://raw.githubusercontent.com/tajpuriya27/active-browser/main/install.sh \| sh` | Prints its `==>` progress lines, ends with the "Set as Default Browser" hint, menu bar item appears. |
+| 5 | `xattr -l /Applications/ActiveBrowser.app` | **No `com.apple.quarantine`.** (`com.apple.provenance` is a different, expected attribute.) This is what lets an ad-hoc-signed bundle install without Gatekeeper prompts. |
+| 6 | With the app running, re-run the same one-liner; then `pgrep -x ActiveBrowser` and `codesign --verify --strict /Applications/ActiveBrowser.app; echo verify=$?` | Exits `0`, replaces the running app, exactly one process, `verify=0`. |
+| 7 | Click Brave → Terminal → `open https://example.com`; click Arc → Terminal → `open https://example.com`. *Requires ActiveBrowser set as default (PR #7's step).* | First link opens in **Brave**, second in **Arc**. |
+
+**Not run, with reasons — not substituted or faked**
+- **Phase 6 Verify 3's fresh-machine simulation** (`lsregister -kill -r -domain local -domain user`) rebuilds your entire Launch Services database and transiently clears every app's handler bindings. Refused on a machine holding a ten-PR test stack, your default-browser binding and a login item.
+- **Intel install of an arm64 release** — no Intel Mac available. The failure mode is pinned anyway: `install.sh` refuses with `this release is built for arm64, this Mac is x86_64` *before* touching `/Applications`, exercised for real with a stubbed `uname` in PR #11.
+
+**Reset after this block**
+- If you do not want to keep the release: `GH_TOKEN=$(gh auth token --user tajpuriya27) gh release delete v0.1.0 --yes` and `git push --delete origin v0.1.0`.
+- If you made the repo public and want it private again, change it back in Settings.
+- After step 4, `/Applications/ActiveBrowser.app` is the curl-installed copy — that is the intended end state.
+
+---
+
+# Final teardown — run this only when you are finished with everything above
+
+Order matters; doing it out of order lets the login item come back.
+
+1. `pkill -x ActiveBrowser`
+2. `rm -rf /Applications/ActiveBrowser.app`
+3. **Then** System Settings → General → Login Items & Extensions → select ActiveBrowser → **−**
+4. System Settings → Desktop & Dock → **Default web browser** → **Arc** (if you ever changed it)
+5. `cd` to the repo and `make clean` (removes `.build/` and `build/`, and unregisters the build copy)
+6. Optional: `defaults delete com.local.activebrowser` to drop the app's stored settings
