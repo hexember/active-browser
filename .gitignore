@@ -1,0 +1,26 @@
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Assembled bundle and release artefacts (make bundle / make release)
+build/
+*.app
+*.app.zip
+SHA256SUMS
+
+# Xcode (not used, but harmless if someone opens the package in Xcode)
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
+
+# macOS
+.DS_Store
+._*
+
+# Signing / notarization secrets — never commit
+*.p12
+*.cer
+*.mobileprovision
+notarize.env
