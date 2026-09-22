@@ -279,6 +279,29 @@ https://github.com/hexember/active-browser/pull/24
 **Reset after this block**
 - System Settings → Desktop & Dock → *Default web browser* → your real browser.
 
+
+---
+
+## PR #25 — Task 14: repo moved to hexember, install.sh served from activebrowser.app
+
+**Preconditions**
+- You own `activebrowser.app` and can edit its DNS. Steps 3–7 need the PR merged to `main`.
+- **Do steps 1–2 BEFORE merging**, or the first `pages` run fails and has to be re-run by hand.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | At your registrar, own `activebrowser.app` and add apex `A` 185.199.108.153, .109.153, .110.153, .111.153 and `AAAA` 2606:50c0:8000::153, 8001::153, 8002::153, 8003::153. Optional: `www` CNAME `hexember.github.io`. **1b (recommended).** GitHub → your Settings → Pages → *Add a verified domain* → add the TXT record it shows. | `dig +short activebrowser.app A` lists the four IPs; the domain shows *Verified* |
+| 2 | Repo Settings → Pages → Build and deployment → Source: **GitHub Actions** (preferably before merging) | Setting saved |
+| 3 | Merge the PR. Actions tab → `pages` workflow. If it ran before step 2 and failed, *Run workflow* on `main`. | `build` and `deploy` green; the deploy job shows a `github-pages` URL |
+| 4 | Settings → Pages → Custom domain: `activebrowser.app` → Save; wait for the DNS check to pass → tick **Enforce HTTPS** (it may take up to about 1 h for the certificate) | Green DNS check; Enforce HTTPS is ticked |
+| 5 | `curl -fsSI https://activebrowser.app/install.sh \| head -1` and open `https://activebrowser.app` in a browser | `HTTP/2 200`; the landing page shows the one-liner and repo links |
+| 6 | Phase 6 Verify 3–4: quit ActiveBrowser, `rm -rf /Applications/ActiveBrowser.app`, then `curl -fsSL https://activebrowser.app/install.sh \| sh`. Then run it again with the app running (Verify 6). | Prints `==>` steps, including `Resolving the latest release of hexember/active-browser`, and ends with the Set-as-Default hint; menu bar item appears; the second run replaces the app in place without error |
+| 7 | Phase 6 Verify 8: `curl -fsSL https://activebrowser.app/install.sh \| diff - install.sh` (run from an up-to-date `main` checkout, at least 10 min after the last deploy) | no output |
+
+**Reset after this block**
+- Pages source, custom domain and DNS are the intended end state; nothing to undo.
+- Step 6 replaces a dev build in `/Applications` with the released one; `make install` to go back.
+
 ---
 
 # Final teardown — run this only when you are finished with everything above
