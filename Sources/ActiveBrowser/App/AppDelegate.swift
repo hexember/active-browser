@@ -18,6 +18,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let focusObserver: FocusObserver
     private let dispatcher: URLDispatcher
 
+    /// Optional and `var`, not a `let` built in `init()`: `NSStatusBar.system.statusItem(_:)`
+    /// must not be called before `NSApplication` has finished launching. Stored (rather than
+    /// left as a local in `applicationDidFinishLaunching`) because `NSMenuItem.target` and
+    /// `NSMenu.delegate` are weak — an unretained manager gives a menu whose items do nothing.
+    private var menuBar: MenuBarManager?
+
     private var didBootstrap = false
 
     override init() {
@@ -82,10 +88,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     ///
     /// A failure here is not recoverable in code and must not block launch, so every branch just
     /// names its decision in the single log line below.
+    ///
+    /// `settings.launchAtLoginOptOut` gates everything below it because `unregister()` leaves the
+    /// status at `.notRegistered`/`.notFound` — both of which the switch below registers on. So
+    /// without this branch, a user who switched *Launch at Login* off from the menu bar would find
+    /// it back on at the next launch, with no way to tell why (task 06's hand-off note). The flag
+    /// is written only by that menu toggle and read only here; an absent key means "no opt-out
+    /// recorded", which is why this is a pure addition to task 06's behaviour.
     private func registerLoginItemIfInstalled() {
         let message: String
         if !Bundle.main.bundleURL.path.hasPrefix("/Applications/") {
             message = "skipped, bundle is not under /Applications (\(Bundle.main.bundleURL.path))"
+        } else if settings.launchAtLoginOptOut {
+            message = "skipped, user opted out (launchAtLoginOptOut=true)"
         } else {
             let status = SMAppService.mainApp.status
             let shouldRegister: Bool

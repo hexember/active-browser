@@ -23,6 +23,18 @@ final class FocusObserver: NSObject {
     /// (cold-start link click can drive bootstrap from two entry points).
     private var isObserving = false
 
+    /// Called after the stack has been updated by a focus change, i.e. only for an *included*
+    /// browser that actually moved to the head of the stack.
+    ///
+    /// It runs on the main actor, synchronously, as part of handling the focus notification —
+    /// which is exactly why menu surfaces use it instead of adding a second observer for the
+    /// same notification: observer invocation order is unspecified, so a second observer could
+    /// read the stack before this one has touched it.
+    ///
+    /// Owners must capture `self` **weakly** here: this object is owned non-optionally by
+    /// `AppDelegate`, so a strong capture of the delegate closes a retain cycle.
+    var onFocusChange: (() -> Void)?
+
     init(settings: Settings, stack: BrowserStack) {
         self.settings = settings
         self.stack = stack
@@ -50,5 +62,6 @@ final class FocusObserver: NSObject {
               let id = app.bundleIdentifier,
               settings.includedBrowsers.contains(id) else { return }
         stack.touch(id)
+        onFocusChange?()
     }
 }
