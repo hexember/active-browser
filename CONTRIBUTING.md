@@ -73,8 +73,15 @@ assets/             icon artwork (see assets/README.md)
 install.sh          the curl installer
 Makefile            build, bundle, install, release
 docs/               background notes
-.github/workflows/  CI and release
+.github/workflows/  CI, release, and the GitHub Pages site
+_config.yml         GitHub Pages (Jekyll): which docs are published
 ```
+
+`README.md` is also the website at <https://hexember.github.io/active-browser/>, rebuilt
+on every push to `main`. A link in README (or in CONTRIBUTING, SECURITY, CODE_OF_CONDUCT
+or CHANGELOG) must be absolute or point to one of those five `.md` files, because anything
+else 404s on the site. A new file meant for the site must also be added to the allowlist
+check and `paths:` in `.github/workflows/pages.yml`.
 
 ## Project history
 

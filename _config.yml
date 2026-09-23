@@ -1,0 +1,49 @@
+# GitHub Pages (Jekyll) config. The site is README.md plus the root docs it
+# links to; see .github/workflows/pages.yml. Every non-Markdown file not listed
+# under exclude is published verbatim.
+
+title: "ActiveBrowser"
+description: "A macOS menu bar agent that opens every link in the browser you were just using."
+theme: jekyll-theme-cayman
+repository: hexember/active-browser
+show_downloads: false
+
+readme_index:
+  enabled: true
+  remove_originals: true
+
+optional_front_matter:
+  remove_originals: true
+
+include:            # these two are on jekyll-optional-front-matter's filename blacklist; include: whitelists them
+  - CONTRIBUTING.md
+  - CODE_OF_CONDUCT.md
+
+relative_links:
+  enabled: true
+  collections: false
+
+titles_from_headings:
+  enabled: true
+  strip_title: true
+
+# Names starting with ".", "_" or "#" are already skipped by Jekyll. Each entry
+# is matched as a pattern or a path prefix, so never add a short prefix that
+# could swallow a published file (e.g. "C" would exclude CONTRIBUTING.md).
+exclude:
+  - tasks/
+  - docs/
+  - assets/
+  - Sources/
+  - Support/
+  - build/
+  - Project.md
+  - CLAUDE.md
+  - Makefile
+  - Package.swift
+  - Package.resolved
+  - install.sh
+  - LICENSE
+  - Gemfile
+  - Gemfile.lock
+  - vendor/
