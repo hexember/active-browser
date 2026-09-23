@@ -309,6 +309,21 @@ https://github.com/hexember/active-browser/pull/24
 
 ---
 
+## PR #30 — Task 18: README published to GitHub Pages (`chore/pages-readme`, base `chore/readme-restructure`)
+
+**Preconditions:** merge PR #29 first, then this PR. The PR-time Jekyll build already passed (run 35777705333), so these steps check only the deploy and the live site.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | Merge **PR #29 first**, confirm this PR retargets to `main`, then merge this PR. Open Actions → **pages** → the run for the merge commit. | The `pages` run is green: `build` passes, including "Published set is exactly the allowlist", and `deploy` shows the `github-pages` environment URL. Any `::warning::` about "View on GitHub" is noted. *(Note 2026-09-23: step 10b already proved the build on the PR, so this step now checks only the deploy on `main`.)* |
+| 2 | About 2 minutes after the deploy (Pages CDN cache), open https://hexember.github.io/active-browser/ in a browser, hard-refreshed. | It shows the current README: the **Contents** line, and Install showing the `raw.githubusercontent.com/hexember/active-browser/main/install.sh` one-liner. The Cayman header reads "ActiveBrowser" with the tagline and has a **View on GitHub** button that opens github.com/hexember/active-browser. There are no Download .zip/.tar.gz buttons, and the H1 is not repeated under the header. |
+| 3 | `curl -s https://hexember.github.io/active-browser/ \| grep -c 'activebrowser\.app'` and, for each of `install.sh`, `Project.html`, `CLAUDE.html`, `tasks/TEST-PLAN.html`, `LICENSE`, `Makefile`, `README.html`: `curl -s -o /dev/null -w '%{http_code} %{url_effective}\n' https://hexember.github.io/active-browser/<path>` | The count is `0`, so the old one-liner is gone. Every path returns `404` (a `README.html` 404 is expected, because README is served at `/`). |
+| 4 | On the site, click README's links to **CONTRIBUTING.md** (Build from source → "CONTRIBUTING.md"), **SECURITY.md** (Gatekeeper paragraph), **Code of Conduct** and **CHANGELOG.md**. Then, on the SECURITY page, click **README.md → Privacy**. Also click the in-page **Contents** links. | Each opens the rendered `.html` page on hexember.github.io, not a 404 or a raw `.md` file. `#build-and-run`, `#what-youre-trusting-when-you-install-this` and `#privacy` land on the right heading. The Contents anchors scroll correctly. The LICENSE links open GitHub. |
+
+**Reset after this block:** none. Pages is the intended end state.
+
+---
+
 # Final teardown — run this only when you are finished with everything above
 
 Order matters; doing it out of order lets the login item come back.
