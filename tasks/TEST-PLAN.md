@@ -296,6 +296,19 @@ https://github.com/hexember/active-browser/pull/24
 
 ---
 
+## PR #29 — Task 17: README restructured for users (`chore/readme-restructure`, base `main`)
+
+**Preconditions:** none. This is a docs-only change; read it on the PR.
+
+| # | Action | Expected |
+|---|---|---|
+| 1 | On the GitHub PR, open *Files changed* → `README.md` → *Display the rendered blob*. Read top to bottom, click the platform badge and the *Why this exists* / *Build from source* / *Install* links. | The page reads as a user landing doc. The badge jumps to *Install*. All in-page links land on the right heading. The menu mock-up matches what you see when you click the menu bar icon (with the `✓ Default Browser` row if ActiveBrowser is your default). No developer-only sections remain. |
+| 2 | Same for `CONTRIBUTING.md` and `SECURITY.md` (rendered) | CONTRIBUTING reads in order: build → gotchas → architecture → layout → history → testing → constraints → PRs → releasing. Nothing is said twice. SECURITY's *What the app can see* link opens README *Privacy*. |
+
+**Reset after this block:** none.
+
+---
+
 # Final teardown — run this only when you are finished with everything above
 
 Order matters; doing it out of order lets the login item come back.

@@ -14,13 +14,15 @@ make install     # builds, installs to /Applications, registers, launches
 Requirements: **macOS 13+** and a **Swift 6** toolchain (`swift --version`). Install the
 Xcode Command Line Tools with `xcode-select --install` if you don't have them.
 
+Zero third-party dependencies: Swift plus Apple frameworks only (`AppKit`, `Foundation`, `ServiceManagement`).
+
 | Command | What it does |
 |---|---|
 | `make build` | `swift build -c release` |
 | `make bundle` | assemble and ad-hoc sign `build/ActiveBrowser.app` |
 | `make run` | bundle, then launch the `build/` copy |
 | `make install` | build, install to `/Applications`, register, launch |
-| `make release` | produce `ActiveBrowser.app.zip` + `SHA256SUMS` |
+| `make release` | produce `build/ActiveBrowser.app.zip` + `SHA256SUMS` |
 | `make clean` | unregister the build copy, remove `.build/` and `build/` |
 
 ## Three things that will cost you an hour if nobody tells you
@@ -41,8 +43,53 @@ open -a ActiveBrowser          # relaunch through Launch Services
 ```
 
 **3. Don't run `make run` while a copy is installed.** It launches a second bundle with
-the same bundle id claiming the same URL schemes, so macOS registers both and you get two
-ActiveBrowser rows in the default-browser dropdown. `make clean` removes the build copy.
+the same bundle id claiming the same URL schemes, so macOS registers both and you get
+two ActiveBrowser rows in the default-browser dropdown. `make clean` unregisters and
+removes the build copy. `make install` and `make release` both delete `build/ActiveBrowser.app`
+themselves for exactly this reason.
+
+## Architecture
+
+```
+Sources/ActiveBrowser/
+├── App/
+│   ├── AppDelegate.swift      # entry point, owns all state
+│   └── FocusObserver.swift    # the one NSWorkspace focus subscription
+├── Core/
+│   ├── BrowserRegistry.swift  # installed https handlers, minus ourselves
+│   ├── BrowserStack.swift     # LRU order + target resolution
+│   ├── Settings.swift         # UserDefaults-backed preferences
+│   └── URLDispatcher.swift    # the single place a URL is handed off
+└── UI/
+    └── MenuBarManager.swift   # status item and menu
+```
+
+## Repository layout
+
+```
+Sources/            the app
+Support/            Info.plist (the bundle manifest)
+assets/             icon artwork (see assets/README.md)
+install.sh          the curl installer
+Makefile            build, bundle, install, release
+docs/               background notes
+.github/workflows/  CI and release
+```
+
+## Project history
+
+Three directories are **history, not instructions**: `tasks/`, `Project.md`, and
+`.claude/`. This project was built by AI agents working through a task-per-PR workflow, and
+those files are that workflow's records — the specs, the review notes, and the agent
+definitions. They're kept because the reasoning in them is often useful (several non-obvious
+macOS behaviours are documented there and nowhere else), but **you do not need to read or
+follow any of it to contribute**. `CONTRIBUTING.md` is the only process document that
+applies to you. `tasks/TEST-PLAN.md` is the manual checklist that workflow accumulated.
+
+One caveat if you do read them: `Project.md` is the original specification, and the shipped
+code departs from it in several places, notably three where the spec turned out to be wrong —
+the `@main` entry point, the `install:` target ordering, and the `SMAppService` status gate.
+Where the two disagree, the code is correct. Don't "restore" it to match the document.
 
 ## Testing
 
@@ -77,10 +124,11 @@ Two gotchas when testing routing manually:
 
 These are enforced in review; a PR that breaks one will be asked to change:
 
-- **No third-party dependencies.** Swift plus Apple frameworks only.
+- **No third-party dependencies.**
 - **No polling.** State changes through `NSWorkspace` notifications and menu actions only.
 - **Everything is `@MainActor`.** No GCD queues, no locks, no actors.
-- **Background agent only** (`LSUIElement`) — no Dock icon, no windows.
+- **Background agent only** (`LSUIElement`) — no Dock icon, no windows. Idle footprint is
+  ~12 MB today; keep it under 25 MB.
 - **Never drop a URL.** Every dispatch resolves to some browser, or logs why it couldn't.
 - **Never route to ourselves.** The app's own bundle id is filtered out of the registry
   and every dispatch candidate — otherwise a link loops back into the process forever.
@@ -93,7 +141,8 @@ These are enforced in review; a PR that breaks one will be asked to change:
 
 ## Releasing (maintainers)
 
-Push a `v*` tag from `main`; the workflow builds and publishes the assets.
+Push a `v*` tag from `main`. The release workflow builds on `macos-latest`, verifies the
+artefacts, and only then publishes them to the release.
 
 ```sh
 git tag v0.1.1 && git push origin v0.1.1
@@ -102,3 +151,17 @@ git tag v0.1.1 && git push origin v0.1.1
 The published asset names `ActiveBrowser.app.zip` and `SHA256SUMS` are a contract that
 `install.sh` depends on — renaming either breaks the installer for every user. CI guards
 this.
+
+### Testing a release locally
+
+Run the installer against a locally built zip before tagging:
+
+```sh
+make release
+ACTIVEBROWSER_ZIP=build/ActiveBrowser.app.zip sh install.sh
+```
+
+With `ACTIVEBROWSER_ZIP` set, `install.sh` makes no network access at all.
+`ACTIVEBROWSER_SUMS` names the checksum file and defaults to the `SHA256SUMS` next to the
+zip, which is exactly where `make release` writes it. `ACTIVEBROWSER_VERSION` pins a
+release tag instead of resolving the latest one.
