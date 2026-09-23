@@ -2,7 +2,7 @@
 
 [![ci](https://github.com/hexember/active-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/hexember/active-browser/actions/workflows/ci.yml)
 [![release](https://img.shields.io/github/v/release/hexember/active-browser?sort=semver)](https://github.com/hexember/active-browser/releases/latest)
-[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/hexember/active-browser/blob/main/LICENSE)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![platform: macOS 13+](https://img.shields.io/badge/platform-macOS%2013%2B-lightgrey.svg)](#install)
 
 **A macOS menu bar agent that opens every link in the browser you were just using.**
@@ -165,4 +165,4 @@ See [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-[MIT](https://github.com/hexember/active-browser/blob/main/LICENSE).
+[MIT](LICENSE).
